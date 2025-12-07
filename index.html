@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0d1117">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>GitMobile v14</title>
+    <title>GitMobile v15</title>
     
     <link rel="icon" type="image/webp" href="https://files.catbox.moe/6kd6rm.webp">
     <link rel="apple-touch-icon" href="https://files.catbox.moe/6kd6rm.webp">
@@ -198,11 +198,15 @@
 
         <!-- AI TAB -->
         <div id="cont-ai" class="flex-col hidden" style="flex:1; overflow:hidden">
+            <div class="flex" style="padding:10px; border-bottom:1px solid var(--border); justify-content:space-between">
+                <span class="text-xs font-bold text-muted">MEMORY ACTIVE</span>
+                <button class="btn btn-icon" style="width:24px;height:24px;" onclick="AI.clear()" title="Reset Memory"><span class="icon icon-sm">delete_sweep</span></button>
+            </div>
             <div id="chat-hist" class="chat-box">
-                <div class="msg msg-a">I am Gemini. I can read, edit, and create files in this repo.</div>
+                <div class="msg msg-a">I am Gemini. I remember our conversation and can edit this repo.</div>
             </div>
             <div style="padding:16px; background:var(--panel); border-top:1px solid var(--border); display:flex; gap:10px">
-                <input id="ai-in" placeholder="E.g., 'Fix bug in main.js'">
+                <input id="ai-in" placeholder="E.g., 'Read src/index.js' or 'Fix the typo'">
                 <button class="btn btn-ai btn-icon" onclick="AI.send()"><span class="icon">send</span></button>
             </div>
         </div>
@@ -243,7 +247,8 @@
         const State = {
             ghToken: localStorage.getItem('gm_gh'),
             aiToken: localStorage.getItem('gm_ai'),
-            user: null, repos: [], curr: null, tree: [], path: '', files: []
+            user: null, repos: [], curr: null, tree: [], path: '', files: [],
+            chatHistory: [] // AI Memory
         };
 
         const Toast = (m, t='s') => {
@@ -332,7 +337,8 @@
             open: (n, b, owner) => {
                 State.curr = { full_name: n, default_branch: b, owner: {login: owner} };
                 $('r-name').textContent = n; $('r-branch').textContent = b;
-                State.path = ''; 
+                State.path = ''; State.chatHistory = []; // Reset chat per repo
+                $('chat-hist').innerHTML = '<div class="msg msg-a">I am Gemini. Ready to help with this repo.</div>';
                 
                 const isMine = State.user.login === owner;
                 $('btn-del').classList.toggle('hidden', !isMine);
@@ -404,16 +410,12 @@
                 const log = $('up-log'); log.innerHTML='Starting...';
                 try {
                     for(let f of State.files) {
-                        // Relative path from selection + Current navigation path
                         const rel = f.webkitRelativePath.split('/').slice(1).join('/'); 
                         const finalPath = (State.path ? State.path + '/' : '') + rel;
-                        
                         log.innerHTML += `<br>Up: ${finalPath}`;
                         const reader = new FileReader();
                         const b64 = await new Promise(r => { reader.onload = () => r(reader.result.split(',')[1]); reader.readAsDataURL(f); });
-                        
                         let sha; try{const ex=await API.call(`/repos/${State.curr.full_name}/contents/${finalPath}`); sha=ex.sha}catch(z){}
-                        
                         await API.call(`/repos/${State.curr.full_name}/contents/${finalPath}`, 'PUT', {
                             message: $('up-msg').value, content: b64, sha: sha, branch: State.curr.default_branch
                         });
@@ -455,6 +457,11 @@
         };
 
         const AI = {
+            clear: () => {
+                State.chatHistory = [];
+                $('chat-hist').innerHTML = '<div class="msg msg-a">Memory cleared.</div>';
+                Toast("Memory Cleared");
+            },
             append: (t, type) => {
                 const d = document.createElement('div'); d.className = `msg msg-${type}`; d.textContent = t;
                 $('chat-hist').appendChild(d); $('chat-hist').scrollTop = $('chat-hist').scrollHeight;
@@ -464,48 +471,103 @@
                 const txt = $('ai-in').value.trim(); if(!txt) return;
                 if(!State.aiToken) return Toast("Set API Key in Settings", 'e');
                 
-                AI.append(txt, 'u'); $('ai-in').value=''; const load = AI.append('Thinking...', 's');
+                $('ai-in').value='';
                 
-                const prompt = `
-                    You are a GitHub Agent. Repo: ${State.curr.full_name}. Path: /${State.path}.
-                    User request: "${txt}".
-                    Reply ONLY with a JSON object calling a tool.
+                // 1. Add User Message to History & UI
+                State.chatHistory.push({ role: 'user', parts: [{ text: txt }] });
+                AI.append(txt, 'u'); 
+                const load = AI.append('Thinking...', 's');
+                
+                const systemPrompt = `
+                    You are GitMobile Agent. 
+                    Repo: ${State.curr.full_name}. 
+                    Current Path: /${State.path}.
+                    
+                    REPLY ONLY WITH A JSON OBJECT to call a tool.
                     Tools:
-                    { "tool": "read_file", "path": "..." }
-                    { "tool": "update_file", "path": "...", "content": "..." }
-                    { "tool": "create_file", "path": "...", "content": "..." }
-                    { "tool": "reply", "text": "..." }
+                    { "tool": "read_file", "path": "path/to/file" }
+                    { "tool": "update_file", "path": "path", "content": "full_content" }
+                    { "tool": "create_file", "path": "path", "content": "content" }
+                    { "tool": "delete_file", "path": "path" }
+                    { "tool": "rename_repo", "new_name": "name" }
+                    { "tool": "search", "query": "text" }
+                    { "tool": "reply", "text": "natural language response" }
                 `;
+
+                // Prepare Payload with History
+                const payload = {
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: State.chatHistory
+                };
 
                 try {
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${State.aiToken}`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        body: JSON.stringify(payload)
                     });
                     const d = await r.json();
                     load.remove();
+                    
                     const aiTxt = d.candidates[0].content.parts[0].text;
+                    // Add AI raw response to history
+                    State.chatHistory.push({ role: 'model', parts: [{ text: aiTxt }] });
+
                     const clean = aiTxt.replace(/```json/g, '').replace(/```/g, '').trim();
                     const cmd = JSON.parse(clean);
                     AI.execute(cmd);
                 } catch(e) { load.textContent="Error: "+e.message; }
             },
             execute: async (cmd) => {
-                const { tool, path, content, text } = cmd;
+                const { tool, path, content, text, query, new_name } = cmd;
+                let resultText = "";
+
                 try {
-                    if(tool === 'reply') AI.append(text, 'a');
-                    if(tool === 'read_file') {
+                    if(tool === 'reply') {
+                        AI.append(text, 'a');
+                        return; // Don't add reply to history as tool result, it's already there as model response
+                    }
+                    else if(tool === 'read_file') {
                         const d = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
                         const c = decodeURIComponent(escape(window.atob(d.content.replace(/\n/g,""))));
-                        AI.append(`File ${path}:\n${c.substring(0,200)}...`, 'a');
+                        resultText = `SYSTEM: File ${path} content:\n${c}`;
+                        AI.append(`Read ${path} (${c.length} chars)`, 'a');
                     }
-                    if(tool === 'create_file' || tool === 'update_file') {
+                    else if(tool === 'create_file' || tool === 'update_file') {
                         let sha; if(tool==='update_file') { try{const f=await API.call(`/repos/${State.curr.full_name}/contents/${path}`); sha=f.sha}catch(e){} }
                         const b64 = window.btoa(unescape(encodeURIComponent(content)));
-                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'PUT', {message:'AI', content:b64, sha});
-                        AI.append(`File ${path} updated.`, 'a'); Repo.fetch();
+                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'PUT', {message:'AI Action', content:b64, sha});
+                        resultText = `SYSTEM: Successfully ${tool} at ${path}`;
+                        AI.append(`Saved ${path}`, 'a'); Repo.fetch();
                     }
-                } catch(e) { AI.append("Tool error: "+e.message, 's'); }
+                    else if(tool === 'delete_file') {
+                        const f = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
+                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'DELETE', {message:'AI Delete', sha:f.sha});
+                        resultText = `SYSTEM: Deleted ${path}`;
+                        AI.append(`Deleted ${path}`, 'a'); Repo.fetch();
+                    }
+                    else if(tool === 'search') {
+                        const res = await API.call(`/search/code?q=${encodeURIComponent(query)}+repo:${State.curr.full_name}`);
+                        const hits = res.items.map(i=>i.path).join(', ');
+                        resultText = `SYSTEM: Search results for '${query}': ${hits}`;
+                        AI.append(`Found in: ${hits}`, 'a');
+                    }
+                    else if(tool === 'rename_repo') {
+                        const r = await API.call(`/repos/${State.curr.full_name}`, 'PATCH', {name: new_name});
+                        State.curr.full_name = r.full_name; $('r-name').textContent=r.name;
+                        resultText = `SYSTEM: Repo renamed to ${r.name}`;
+                        AI.append(`Renamed to ${r.name}`, 'a');
+                    }
+
+                    // CRITICAL: Feed tool result back to memory as USER message so AI knows what happened
+                    if(resultText) {
+                        State.chatHistory.push({ role: 'user', parts: [{ text: resultText }] });
+                    }
+
+                } catch(e) { 
+                    const err = `SYSTEM ERROR: ${e.message}`;
+                    State.chatHistory.push({ role: 'user', parts: [{ text: err }] });
+                    AI.append("Tool failed: "+e.message, 's'); 
+                }
             }
         };
 
