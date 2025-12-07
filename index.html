@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0d1117">
     
-    <!-- PWA -->
+    <!-- PWA Config -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GitMobile">
     <link rel="icon" type="image/webp" href="https://files.catbox.moe/6kd6rm.webp">
     <link rel="apple-touch-icon" href="https://files.catbox.moe/6kd6rm.webp">
 
-    <title>GitMobile v8</title>
+    <title>GitMobile v9</title>
     
-    <!-- Google Fonts & Icons -->
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
-    <!-- GSAP -->
+    <!-- GSAP Animation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <style>
@@ -35,17 +35,17 @@
             --radius: 8px;
         }
 
-        /* --- RESET --- */
+        /* --- CORE RESET --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { margin: 0; background: var(--bg-body); color: var(--text-main); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; user-select: none; }
         input, textarea, .selectable { user-select: text; }
 
         /* --- ICONS --- */
-        .icon { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr; }
+        .icon { font-family: 'Material Symbols Outlined'; font-size: 24px; line-height: 1; display: inline-block; }
         .icon-sm { font-size: 20px; }
         .icon-lg { font-size: 48px; }
 
-        /* --- UI COMPONENTS --- */
+        /* --- UI ELEMENTS --- */
         .btn {
             background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-main);
             padding: 10px 16px; border-radius: var(--radius); font-weight: 600; cursor: pointer;
@@ -65,20 +65,16 @@
         .view.active { opacity: 1; pointer-events: all; z-index: 10; }
         
         header { 
-            height: calc(var(--header-h) + env(safe-area-inset-top)); 
-            padding-top: env(safe-area-inset-top); 
+            height: calc(var(--header-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); 
             background: var(--bg-panel); border-bottom: 1px solid var(--border); 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding-left: 16px; padding-right: 16px; flex-shrink: 0; 
+            display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; flex-shrink: 0; 
         }
         .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
 
         /* --- LISTS --- */
         .list-item { 
             background: var(--bg-panel); border: 1px solid var(--border); 
-            padding: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; 
-            /* Sharp corners for items generally, but maybe slight radius looks better with Material icons */
-            border-radius: 2px; 
+            padding: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px;
         }
         .list-item:active { background: var(--bg-hover); }
         .list-item.selected { border-color: var(--primary); background: rgba(35,134,54,0.15); }
@@ -88,39 +84,34 @@
         .gutter { width: 40px; background: #0d1117; border-right: 1px solid var(--border); color: #484f58; text-align: right; padding: 10px 5px; line-height: 20px; }
         .code-area { flex: 1; background: transparent; color: #e6edf3; border: none; padding: 10px; resize: none; white-space: pre; overflow: auto; tab-size: 2; line-height: 20px; }
 
-        /* --- MODALS (Bottom Sheet Style) --- */
+        /* --- MODALS (Bottom Sheet) --- */
         .modal-overlay { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 5000; 
-            display: none; align-items: flex-end; /* Bottom alignment */
-            justify-content: center; backdrop-filter: blur(2px);
+            display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px);
         }
         .modal-overlay.open { display: flex; }
         
         .modal-sheet { 
-            background: var(--bg-panel); border-top: 1px solid var(--border); 
-            width: 100%; max-width: 600px; 
-            border-top-left-radius: 16px; border-top-right-radius: 16px; 
-            padding: 24px; max-height: 85vh; display: flex; flex-direction: column;
-            transform: translateY(100%); 
+            background: var(--bg-panel); border-top: 1px solid var(--border); width: 100%; max-width: 600px; 
+            border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 24px; max-height: 85vh; 
+            display: flex; flex-direction: column; transform: translateY(100%); 
         }
 
-        /* --- MOVE DIALOG SPECIFIC --- */
-        .folder-list { overflow-y: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; max-height: 300px; }
+        /* --- FOLDER BROWSER --- */
+        .folder-list { overflow-y: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); max-height: 350px; }
         .folder-row { 
-            padding: 12px 16px; border-bottom: 1px solid var(--border); 
-            display: flex; align-items: center; gap: 12px; cursor: pointer;
-            transition: background 0.2s;
+            padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; cursor: pointer;
         }
         .folder-row:last-child { border-bottom: none; }
         .folder-row.active { background: var(--primary); color: white; }
-        .folder-row .radio-circle {
+        .folder-row .radio {
             width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--text-muted);
             display: flex; align-items: center; justify-content: center;
         }
-        .folder-row.active .radio-circle { border-color: white; background: white; }
-        .folder-row.active .radio-circle::after { content:''; width: 10px; height: 10px; background: var(--primary); border-radius: 50%; }
+        .folder-row.active .radio { border-color: white; background: white; }
+        .folder-row.active .radio::after { content:''; width: 10px; height: 10px; background: var(--primary); border-radius: 50%; }
 
-        /* --- TOAST & UTILS --- */
+        /* --- TOAST --- */
         #toast-container { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 6000; width: 90%; max-width: 400px; pointer-events: none; }
         .toast { background: var(--bg-panel); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
@@ -256,14 +247,11 @@
     </div>
 
     <script>
-        // --- 0. SAFETY BOOT ---
         window.onerror = (msg) => { alert("Error: " + msg); };
-
         const $ = id => document.getElementById(id);
-        const State = { token: localStorage.getItem('gm8_t'), user: null, repos: [], curr: null, tree: [], path: '', sel: [], selMode: false, files: [], target: null };
+        const State = { token: localStorage.getItem('gm9_t'), user: null, repos: [], curr: null, tree: [], path: '', sel: [], selMode: false, files: [], target: null };
         const API = 'https://api.github.com';
 
-        // --- 1. UTILS & GSAP ---
         const Toast = (m, t='s') => {
             const el=document.createElement('div'); el.className='toast';
             el.style.borderLeft=`4px solid ${t==='e'?'var(--danger)':'var(--primary)'}`;
@@ -280,10 +268,7 @@
                 const old = document.querySelector('.view.active');
                 const next = $(`view-${id}`);
                 if(old === next) return;
-                
-                // GSAP Transition
                 if(old) gsap.to(old, {opacity:0, scale:0.95, duration:0.2, onComplete:()=>old.classList.remove('active')});
-                
                 next.classList.add('active');
                 gsap.fromTo(next, {opacity:0, scale:1.05}, {opacity:1, scale:1, duration:0.3, delay:0.1});
             }
@@ -300,7 +285,7 @@
             } catch(e) { Toast(e.message, 'e'); throw e; }
         };
 
-        // --- 2. MODAL SYSTEM ---
+        // --- MODAL SYSTEM ---
         const Modal = {
             el: $('modal-overlay'),
             sheet: $('modal-sheet'),
@@ -314,7 +299,6 @@
                 if(t==='newfile') { $('modal-body').innerHTML=`<p class="text-muted text-xs">In: /${State.path}</p><input id="new-name" placeholder="Name">`; $('modal-ok').textContent='Create'; $('modal-ok').onclick=Editor.new; }
                 if(t==='newfolder') { $('modal-body').innerHTML=`<p class="text-muted text-xs">In: /${State.path}</p><input id="new-fname" placeholder="Name">`; $('modal-ok').textContent='Create'; $('modal-ok').onclick=Repo.newFolder; }
                 if(t==='move') {
-                    // Mobile Friendly Folder Browser
                     const dirs = ['root', ...State.tree.filter(x=>x.type==='tree').map(x=>x.path)];
                     let html = `<div class="folder-list">`;
                     dirs.forEach(d => {
@@ -322,7 +306,7 @@
                         const depth = d==='root'?0:d.split('/').length;
                         html += `
                         <div class="folder-row" onclick="Modal.selectFolder(this, '${d}')" style="padding-left:${depth*15+16}px">
-                            <div class="radio-circle"></div>
+                            <div class="radio"></div>
                             <span class="icon icon-sm" style="color:var(--text-muted)">folder</span>
                             <span>${name}</span>
                         </div>`;
@@ -330,7 +314,7 @@
                     html += `</div>`;
                     $('modal-body').innerHTML=html;
                     $('modal-ok').textContent='Move Here';
-                    $('modal-ok').disabled = true; // Disable until selection
+                    $('modal-ok').disabled = true; 
                     $('modal-ok').onclick = Repo.doMove;
                     State.target = null;
                 }
@@ -346,7 +330,7 @@
             }
         };
 
-        // --- 3. APP LOGIC ---
+        // --- APP LOGIC ---
         const App = {
             init: async () => {
                 if(State.token) {
@@ -355,7 +339,7 @@
                         State.user = await api('/user');
                         $('user-login').textContent = State.user.login; $('user-avatar').src = State.user.avatar_url;
                         Nav.to('dashboard'); Repo.list();
-                    } catch(e) { localStorage.removeItem('gm8_t'); State.token=null; Nav.to('login'); }
+                    } catch(e) { localStorage.removeItem('gm9_t'); State.token=null; Nav.to('login'); }
                     finally { Loader.off('btn-login'); }
                 } else { Nav.to('login'); }
             },
@@ -364,7 +348,7 @@
                 State.token = t; Loader.on('btn-login');
                 try {
                     State.user = await api('/user');
-                    localStorage.setItem('gm8_t', t);
+                    localStorage.setItem('gm9_t', t);
                     $('user-login').textContent = State.user.login; $('user-avatar').src = State.user.avatar_url;
                     Nav.to('dashboard'); Repo.list();
                 } catch(e) { State.token = null; } finally { Loader.off('btn-login'); }
@@ -394,10 +378,7 @@
                             <span class="icon icon-sm" style="color:var(--text-muted)">chevron_right</span>
                         </div>
                     `).join('');
-                    
-                    // GSAP Stagger
                     gsap.from(".list-item", {opacity:0, y:20, duration:0.3, stagger:0.05});
-                    
                 } catch(e) { el.innerHTML='Error'; }
             },
             create: async () => {
@@ -406,8 +387,15 @@
                 Modal.close(); State.repos=[]; Repo.list();
             },
             open: (n, b) => {
-                State.curr = {full_name:n, default_branch:b}; $('repo-name').textContent=n; $('repo-branch').textContent=b;
-                Nav.to('repo'); Repo.path=''; Repo.fetch();
+                State.curr = {full_name:n, default_branch:b}; 
+                $('repo-name').textContent=n; $('repo-branch').textContent=b;
+                // --- CRITICAL FIX: RESET STATE ---
+                State.path = ''; 
+                State.sel = []; 
+                State.selMode = false;
+                Repo.updBar();
+                // ---------------------------------
+                Nav.to('repo'); Repo.fetch();
             },
             fetch: async () => {
                 const el=$('file-list'); el.innerHTML='<div style="padding:20px">Loading...</div>';
@@ -419,8 +407,6 @@
             render: () => {
                 const el=$('file-list'); el.innerHTML='';
                 const p = State.path;
-                
-                // Breadcrumbs
                 const bc=$('breadcrumbs'); bc.innerHTML=`<span class="crumb" onclick="Repo.nav('')">root</span>`;
                 if(p) p.split('/').forEach((part,i,a) => bc.innerHTML+=`<span>/</span><span class="crumb" onclick="Repo.nav('${a.slice(0,i+1).join('/')}')">${part}</span>`);
                 $('upload-path').textContent = p ? '/'+p : '/';
@@ -436,13 +422,11 @@
                     const row = document.createElement('div');
                     row.className = `list-item ${State.sel.includes(i.path)?'selected':''}`;
                     const icon = i.type==='tree'?'folder':'description'; const col=i.type==='tree'?'#58a6ff':'#7d8590';
-                    
                     row.innerHTML = `<div style="display:flex;gap:10px;align-items:center">
                         <div style="width:18px;height:18px;border:2px solid #555;border-radius:2px;display:${State.selMode?'flex':'none'};align-items:center;justify-content:center;background:${State.sel.includes(i.path)?'var(--primary)':'transparent'}">${State.sel.includes(i.path)?'<span class="icon" style="font-size:14px;color:white;font-weight:bold">check</span>':''}</div>
                         <span class="icon icon-sm" style="color:${col}">${icon}</span>
                         <span style="font-family:monospace;font-size:13px">${i.path.split('/').pop()}</span>
                     </div>`;
-                    
                     row.onclick = () => {
                         if(State.selMode) {
                             if(State.sel.includes(i.path)) State.sel=State.sel.filter(x=>x!==i.path); else State.sel.push(i.path);
@@ -458,9 +442,8 @@
             toggleSelect: () => { State.selMode=!State.selMode; State.sel=[]; Repo.updBar(); Repo.render(); },
             updBar: () => { 
                 $('sel-count').textContent=State.sel.length; 
-                const bar = $('action-bar');
-                bar.style.display = (State.selMode && State.sel.length>0) ? 'flex' : 'none';
-                if(State.selMode && State.sel.length>0) gsap.fromTo(bar, {y:50, opacity:0}, {y:0, opacity:1, duration:0.2});
+                $('action-bar').style.display = (State.selMode) ? 'flex' : 'none';
+                $('btn-select-mode').style.color = State.selMode ? 'var(--primary)' : 'inherit';
             },
             newFolder: async () => {
                 const n=$('new-fname').value; if(!n)return; Modal.close();
