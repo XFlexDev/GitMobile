@@ -3,567 +3,725 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0d1117">
+    <meta name="theme-color" content="#010409">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>GitMobile v16</title>
+    <meta name="apple-mobile-web-app-title" content="GitMobile">
     
     <link rel="icon" type="image/webp" href="https://files.catbox.moe/6kd6rm.webp">
     <link rel="apple-touch-icon" href="https://files.catbox.moe/6kd6rm.webp">
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=block" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <style>
         :root {
-            --bg: #0d1117; --panel: #161b22; --hover: #21262d; --border: #30363d;
-            --primary: #238636; --ai: #8250df; --danger: #da3633; --text: #e6edf3; --muted: #7d8590;
-            --font-ui: 'Inter', sans-serif; --font-code: 'JetBrains Mono', monospace;
-            --header-h: 60px;
+            --bg-deep: #010409;
+            --bg-card: #0d1117;
+            --bg-float: #161b22;
+            --border: #30363d;
+            --border-highlight: #484f58;
+            --primary: #238636;
+            --primary-glow: rgba(35, 134, 54, 0.4);
+            --danger: #da3633;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --nav-height: 64px;
+            --radius-btn: 12px;
+            --radius-card: 0px; 
+            --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); height: 100vh; overflow: hidden; user-select: none; }
-        input, textarea, .selectable { user-select: text; }
+        
+        body {
+            margin: 0; background: var(--bg-deep); color: var(--text-main);
+            font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        input, textarea, .selectable { user-select: text; -webkit-user-select: text; }
+
+        /* --- LAYOUT SYSTEM --- */
+        #app-root { position: relative; width: 100%; height: 100%; overflow: hidden; perspective: 1000px; }
+
+        .view {
+            position: absolute; inset: 0; background: var(--bg-deep);
+            display: flex; flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom);
+            will-change: transform, opacity;
+            box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+            opacity: 0; pointer-events: none; z-index: 0;
+        }
+        .view.active { opacity: 1; pointer-events: all; z-index: 10; }
+
+        header {
+            height: calc(var(--nav-height) + env(safe-area-inset-top));
+            padding-top: env(safe-area-inset-top);
+            padding-left: 20px; padding-right: 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(1, 4, 9, 0.8);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+            z-index: 50; flex-shrink: 0;
+        }
+
+        .scroll-content { 
+            flex: 1; overflow-y: auto; padding: 20px; 
+            -webkit-overflow-scrolling: touch; 
+            scroll-behavior: smooth;
+        }
+
+        /* --- TYPOGRAPHY & ICONS --- */
+        .icon { font-family: 'Material Symbols Rounded'; font-size: 24px; color: var(--text-main); }
+        .icon-sm { font-size: 20px; }
+        .icon-lg { font-size: 48px; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .text-muted { color: var(--text-muted); }
+        .text-sm { font-size: 13px; }
+        .text-xs { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+        /* --- COMPONENTS --- */
+        .btn {
+            background: var(--bg-float); border: 1px solid var(--border);
+            color: var(--text-main); padding: 0 20px; height: 48px;
+            border-radius: var(--radius-btn); font-weight: 600; font-size: 15px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; position: relative; overflow: hidden;
+            transition: transform 0.1s cubic-bezier(0.2, 0, 0, 1), background 0.2s, box-shadow 0.2s;
+        }
+        .btn:active { transform: scale(0.94); background: var(--hover); }
+        
+        .btn-primary { 
+            background: var(--primary); border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+        .btn-primary:active { box-shadow: 0 2px 5px var(--primary-glow); }
+        .btn-danger { background: rgba(218,54,51,0.15); color: #ff7b72; border-color: rgba(218,54,51,0.5); }
+        .btn-icon { width: 44px; padding: 0; border-radius: 50%; }
+
+        /* --- LOADER FIX --- */
+        .loader {
+            width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            display: none; /* FIX: Hidden by default */
+            position: absolute; left: 50%; top: 50%; 
+            margin-left: -10px; margin-top: -10px; /* Center perfectly */
+        }
+        
+        /* Loading State Styles */
+        .btn.loading .btn-content { visibility: hidden; opacity: 0; }
+        .btn.loading .loader { display: block; }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Inputs */
+        .input-group { position: relative; margin-bottom: 16px; }
+        input, select {
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: white; height: 50px; padding: 0 16px; width: 100%;
+            border-radius: 12px; font-size: 16px; font-weight: 500;
+            transition: all 0.2s;
+        }
+        input:focus { border-color: var(--text-muted); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+        /* Lists */
+        .list-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+            border-radius: 2px; transition: background 0.2s;
+        }
+        .list-card:active { background: var(--bg-float); }
+        .list-card.selected { border: 1px solid var(--primary); background: rgba(35,134,54,0.1); }
+
+        /* Editor */
+        .editor-container { 
+            flex: 1; background: #0d1117; display: flex; flex-direction: column; 
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; 
+        }
+        .editor-meta { padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+        .code-input { 
+            flex: 1; background: transparent; color: #e6edf3; border: none; 
+            padding: 20px; resize: none; white-space: pre; overflow: auto; tab-size: 2; line-height: 1.6; 
+        }
+
+        /* Bottom Sheet */
+        .sheet-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 2000; opacity: 0; pointer-events: none; display: flex; align-items: flex-end;
+        }
+        .sheet-overlay.open { opacity: 1; pointer-events: all; }
+        
+        .sheet-content {
+            width: 100%; background: #161b22; 
+            border-top: 1px solid var(--border-highlight);
+            border-top-left-radius: 24px; border-top-right-radius: 24px;
+            padding: 30px 24px 40px 24px;
+            transform: translateY(100%);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .folder-browser {
+            max-height: 40vh; overflow-y: auto; margin: 20px 0;
+            border: 1px solid var(--border); border-radius: 8px;
+        }
+        .folder-row {
+            padding: 16px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px; cursor: pointer;
+        }
+        .folder-row.active { background: var(--primary); color: white; }
+
+        /* Action Bar */
+        .action-bar {
+            position: absolute; bottom: 30px; left: 20px; right: 20px;
+            background: rgba(22, 27, 34, 0.95); backdrop-filter: blur(16px);
+            border: 1px solid var(--border-highlight); border-radius: 16px;
+            padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(150%); z-index: 1000;
+        }
 
         .hidden { display: none !important; }
         .flex { display: flex; align-items: center; }
-        .flex-col { display: flex; flex-direction: column; }
-        .w-full { width: 100%; }
-        .text-sm { font-size: 14px; } .text-xs { font-size: 12px; }
-        .font-bold { font-weight: 600; } .font-code { font-family: var(--font-code); }
+        .gap-2 { gap: 10px; }
 
-        /* BUTTONS & LOADER */
-        .btn {
-            background: var(--panel); border: 1px solid var(--border); color: var(--text);
-            padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            font-size: 14px; transition: transform 0.1s; min-height: 40px; position: relative;
+        /* Toast */
+        #toasts { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 3000; width: 90%; max-width: 350px; pointer-events: none; }
+        .toast { 
+            background: #1f2428; color: white; padding: 16px; border-radius: 12px; 
+            border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-weight: 600;
         }
-        .btn:active { transform: scale(0.96); background: var(--hover); }
-        .btn-primary { background: var(--primary); border-color: rgba(255,255,255,0.1); color: white; }
-        .btn-ai { background: var(--ai); border-color: rgba(255,255,255,0.1); color: white; }
-        .btn-danger { background: rgba(218,54,51,0.1); color: var(--danger); border-color: rgba(218,54,51,0.4); }
-        .btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
-        
-        .loader {
-            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); 
-            border-top-color: white; border-radius: 50%; 
-            animation: spin 0.8s linear infinite; display: none;
-            position: absolute; left: 50%; top: 50%; margin-left: -9px; margin-top: -9px;
-        }
-        .btn.loading .loader { display: block; }
-        .btn.loading span, .btn.loading .icon, .btn.loading .btn-text { visibility: hidden; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .icon { font-family: 'Material Symbols Outlined'; font-size: 24px; display: inline-block; line-height: 1; }
-        .icon-sm { font-size: 20px; } .icon-lg { font-size: 48px; }
-
-        input, select { background: var(--bg); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; }
-        
-        .view { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; opacity: 0; pointer-events: none; padding-bottom: env(safe-area-inset-bottom); transform: scale(0.98); transition: opacity 0.2s, transform 0.2s; }
-        .view.active { opacity: 1; pointer-events: all; z-index: 10; transform: scale(1); }
-        
-        header { height: calc(var(--header-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding-left: 16px; padding-right: 16px; flex-shrink: 0; }
-        .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
-
-        .list-item { background: var(--panel); border: 1px solid var(--border); padding: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; }
-        .list-item:active { background: var(--hover); }
-
-        .chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; }
-        .msg-u { align-self: flex-end; background: var(--primary); color: white; }
-        .msg-a { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
-        .msg-s { align-self: center; font-size: 12px; color: var(--muted); }
-
-        .editor-wrap { flex: 1; display: flex; background: #0d1117; font-family: var(--font-code); font-size: 13px; overflow: hidden; }
-        .code-area { flex: 1; background: transparent; color: #e6edf3; border: none; padding: 16px; resize: none; white-space: pre; overflow: auto; tab-size: 2; width: 100%; height: 100%; }
-
-        /* Tabs */
-        .tab-btn { flex: 1; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--muted); border-radius: 0; }
-        .tab-btn.active { border-bottom-color: var(--primary); color: white; }
-        .tab-btn.active-ai { border-bottom-color: var(--ai); color: var(--ai); }
-
-        /* Modals */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-overlay.open { display: flex; }
-        .modal-box { background: var(--panel); border: 1px solid var(--border); width: 90%; max-width: 400px; padding: 24px; border-radius: 12px; display: flex; flex-direction: column; }
-
-        #crash-screen { display:none; position:fixed; inset:0; background:black; z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
-        #toast-box { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; pointer-events: none; }
-        .toast { background: var(--panel); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px black; }
     </style>
 </head>
 <body>
 
-    <div id="crash-screen">
-        <h2 style="color:var(--danger)">App Crashed</h2>
-        <p class="text-muted" style="margin-bottom:20px" id="crash-msg">Unknown Error</p>
-        <button class="btn btn-danger" onclick="localStorage.clear(); location.reload()">Factory Reset</button>
-    </div>
-
-    <div id="toast-box"></div>
-
-    <!-- VIEW 1: LOGIN -->
-    <div id="view-login" class="view active">
-        <div style="margin: auto; width: 100%; max-width: 320px; text-align: center;">
-            <span class="icon icon-lg" style="margin-bottom:20px">deployed_code</span>
-            <h1 style="margin-bottom:30px">GitMobile</h1>
-            <input type="password" id="gh-token" placeholder="GitHub Token" style="margin-bottom:20px">
-            <button class="btn btn-primary w-full" id="btn-login" onclick="App.login()">
-                <div class="loader"></div><span class="btn-text">Sign In</span>
-            </button>
-            <div style="margin-top:30px; border-top:1px solid var(--border); padding-top:20px">
-                <p class="text-xs text-muted mb-2">AI API Key (Optional)</p>
-                <input type="password" id="ai-key-login" placeholder="Gemini API Key">
-            </div>
-        </div>
-    </div>
-
-    <!-- VIEW 2: DASHBOARD -->
-    <div id="view-dashboard" class="view">
-        <header>
-            <div class="flex gap-2">
-                <img id="u-avatar" style="width:32px; height:32px; border-radius:50%; background:#333">
-                <span id="u-login" class="font-bold">...</span>
-            </div>
-            <button class="btn btn-icon" onclick="Nav.to('settings')"><span class="icon">settings</span></button>
-        </header>
-        <div class="scroll">
-            <div class="flex gap-2" style="margin-bottom:16px">
-                <input id="search-input" placeholder="Search...">
-                <select id="search-scope" style="width:auto"><option value="my">My Repos</option><option value="global">Global</option></select>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <h3 class="text-xs font-bold text-muted">REPOSITORIES</h3>
-                <button class="btn btn-primary" style="padding: 6px 12px; font-size:12px;" onclick="Modal.open('create')">New</button>
-            </div>
-            <div id="repo-list"></div>
-        </div>
-    </div>
-
-    <!-- VIEW 3: SETTINGS -->
-    <div id="view-settings" class="view">
-        <header>
-            <button class="btn btn-icon" onclick="Nav.to('dashboard')"><span class="icon">arrow_back</span></button>
-            <span class="font-bold">Settings</span>
-            <div style="width:40px"></div>
-        </header>
-        <div class="scroll">
-            <div style="background:var(--panel); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px">
-                <label class="text-xs font-bold block mb-2">GEMINI API KEY</label>
-                <input type="password" id="ai-key-set" placeholder="Paste key here">
-                <button class="btn btn-primary w-full" style="margin-top:10px" onclick="App.saveAI()">Save Key</button>
-            </div>
-            <button class="btn btn-danger w-full" onclick="App.logout()">Logout</button>
-        </div>
-    </div>
-
-    <!-- VIEW 4: REPO -->
-    <div id="view-repo" class="view">
-        <header>
-            <button class="btn btn-icon" onclick="Nav.to('dashboard')"><span class="icon">arrow_back</span></button>
-            <div style="text-align:center">
-                <div id="r-name" class="font-bold">...</div>
-                <div id="r-branch" class="text-xs text-muted font-code">main</div>
-            </div>
-            <div class="flex gap-2">
-                <button id="btn-fork" class="btn hidden" onclick="Repo.fork()">
-                    <div class="loader"></div><span class="btn-text">Fork</span>
-                </button>
-                <button id="btn-del" class="btn btn-icon btn-danger" onclick="Repo.delRepo()"><span class="icon">delete</span></button>
-            </div>
-        </header>
-        <div class="flex" style="background:var(--panel); border-bottom:1px solid var(--border)">
-            <button class="btn tab-btn active" onclick="Repo.tab('files')" id="tab-files">Files</button>
-            <button class="btn tab-btn" onclick="Repo.tab('upload')" id="tab-upload">Upload</button>
-            <button class="btn tab-btn" onclick="Repo.tab('ai')" id="tab-ai">AI Agent</button>
-        </div>
-        
-        <!-- FILES TAB -->
-        <div id="cont-files" class="flex-col" style="flex:1; overflow:hidden">
-            <div class="flex" style="padding:12px; gap:10px; border-bottom:1px solid var(--border)">
-                <button class="btn" style="font-size:12px; padding:6px 10px" onclick="Modal.open('newfile')"><span class="icon icon-sm">description</span> File</button>
-                <button class="btn" style="font-size:12px; padding:6px 10px" onclick="Modal.open('newfolder')"><span class="icon icon-sm">create_new_folder</span> Folder</button>
-                <button class="btn" style="font-size:12px; padding:6px 10px" onclick="Repo.fetch()"><span class="icon icon-sm">refresh</span></button>
-            </div>
-            <div class="flex" style="padding:12px; border-bottom:1px solid var(--border); overflow-x:auto; font-family:var(--font-code); font-size:12px;" id="crumbs"></div>
-            <div id="file-list" class="scroll" style="padding:0"></div>
-        </div>
-
-        <!-- UPLOAD TAB -->
-        <div id="cont-upload" class="scroll hidden">
-            <div style="border:2px dashed var(--border); padding:40px; text-align:center; border-radius:8px; margin-top:20px; cursor:pointer;" onclick="$('file-input').click()">
-                <span class="icon icon-lg" style="color:var(--muted)">cloud_upload</span>
-                <h3>Select Folder</h3>
-                <p class="text-muted text-sm">Target: <span id="upload-target" class="font-code">/</span></p>
-                <input type="file" id="file-input" multiple webkitdirectory hidden>
-            </div>
-            <div id="upload-q" class="hidden" style="margin-top:20px">
-                <p>Queue: <span id="q-count">0</span> files</p>
-                <input id="up-msg" placeholder="Commit message" value="Bulk upload" style="margin:10px 0;">
-                <button class="btn btn-primary w-full" id="btn-do-upload" onclick="Repo.executeUpload()">
-                    <div class="loader"></div><span class="btn-text">Start Upload</span>
-                </button>
-                <div id="up-log" style="font-family:var(--font-code); font-size:11px; margin-top:10px; color:var(--muted);"></div>
-            </div>
-        </div>
-
-        <!-- AI TAB -->
-        <div id="cont-ai" class="flex-col hidden" style="flex:1; overflow:hidden">
-            <div class="flex" style="padding:10px; border-bottom:1px solid var(--border); justify-content:space-between">
-                <span class="text-xs font-bold text-muted">MEMORY ACTIVE</span>
-                <button class="btn btn-icon" style="width:24px;height:24px;" onclick="AI.clear()" title="Reset Memory"><span class="icon icon-sm">delete_sweep</span></button>
-            </div>
-            <div id="chat-hist" class="chat-box">
-                <div class="msg msg-a">I am Gemini. I remember our conversation and can edit this repo.</div>
-            </div>
-            <div style="padding:16px; background:var(--panel); border-top:1px solid var(--border); display:flex; gap:10px">
-                <input id="ai-in" placeholder="E.g., 'Read src/index.js' or 'Fix the typo'">
-                <button class="btn btn-ai btn-icon" onclick="AI.send()"><span class="icon">send</span></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- VIEW 5: EDITOR -->
-    <div id="view-editor" class="view" style="z-index:50">
-        <header>
-            <div class="flex gap-2">
-                <button class="btn btn-icon" onclick="Nav.to('repo')"><span class="icon">close</span></button>
-                <span id="ed-name" class="font-bold font-code">...</span>
-            </div>
-            <button class="btn btn-primary" id="btn-save" onclick="Editor.save()">
-                <div class="loader"></div><span class="btn-text">Save</span>
-            </button>
-        </header>
-        <div class="editor-wrap">
-            <textarea class="code-area" id="ed-code" spellcheck="false" wrap="off"></textarea>
-        </div>
-    </div>
-
-    <!-- MODAL -->
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="modal-title" style="margin-top:0;">Title</h3>
-            <div id="modal-body"></div>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-                <button class="btn" onclick="Modal.close()">Cancel</button>
-                <button class="btn btn-primary" id="modal-ok">
-                    <div class="loader"></div><span class="btn-text">Confirm</span>
+    <!-- OVERLAYS -->
+    <div id="toasts"></div>
+    
+    <div id="sheet-overlay" class="sheet-overlay">
+        <div class="sheet-content" id="sheet-content">
+            <h2 id="sheet-title" style="margin:0 0 10px 0; font-size:20px;">Title</h2>
+            <div id="sheet-body"></div>
+            <div style="margin-top:24px; display:flex; gap:12px;">
+                <button class="btn" style="flex:1;" onclick="Modal.close()">Cancel</button>
+                <button class="btn btn-primary" style="flex:1;" id="sheet-confirm">
+                    <span class="btn-content">Confirm</span>
+                    <div class="loader"></div>
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- ROOT -->
+    <div id="app-root">
+
+        <!-- 1. LOGIN -->
+        <div id="view-login" class="view active">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px;">
+                <div style="align-self:center; margin-bottom:40px; width:80px; height:80px; background:white; border-radius:20px; display:flex; align-items:center; justify-content:center;">
+                    <span class="icon" style="font-size:48px; color:black;">deployed_code</span>
+                </div>
+                <h1 style="font-size:32px; margin-bottom:8px; text-align:center;">GitMobile</h1>
+                <p class="text-muted" style="text-align:center; margin-bottom:40px;">Heavy Metal Edition</p>
+                
+                <div class="input-group">
+                    <input type="password" id="login-token" placeholder="Personal Access Token">
+                </div>
+                
+                <button class="btn btn-primary" id="btn-login" style="height:56px; font-size:16px;" onclick="App.login()">
+                    <span class="btn-content">Authenticate</span>
+                    <div class="loader"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. DASHBOARD -->
+        <div id="view-dashboard" class="view">
+            <header>
+                <div class="flex gap-2">
+                    <div style="width:36px; height:36px; border-radius:10px; overflow:hidden; border:1px solid var(--border);">
+                        <img id="user-avatar" style="width:100%; height:100%;">
+                    </div>
+                    <span id="user-login" style="font-weight:700;">...</span>
+                </div>
+                <button class="btn btn-icon" onclick="App.logout()"><span class="icon">logout</span></button>
+            </header>
+            
+            <div class="scroll-content">
+                <div style="display:flex; gap:12px; margin-bottom:24px;">
+                    <div style="position:relative; flex:1;">
+                        <span class="icon" style="position:absolute; left:12px; top:13px; color:var(--text-muted);">search</span>
+                        <input id="dash-search" placeholder="Search repositories..." style="padding-left:44px;">
+                    </div>
+                    <select id="dash-scope" style="width:auto; padding:0 24px; background:var(--bg-float);">
+                        <option value="my">My Repos</option>
+                        <option value="global">Global</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:end; margin-bottom:16px;">
+                    <span class="text-xs text-muted">REPOSITORIES</span>
+                    <button class="btn btn-primary" style="height:36px; padding:0 16px;" onclick="Modal.createRepo()">
+                        <span class="icon icon-sm">add</span> New
+                    </button>
+                </div>
+
+                <div id="repo-list"></div>
+            </div>
+        </div>
+
+        <!-- 3. REPO DETAIL -->
+        <div id="view-repo" class="view">
+            <header>
+                <button class="btn btn-icon" onclick="Router.back()"><span class="icon">arrow_back_ios</span></button>
+                <div style="text-align:center;">
+                    <div id="repo-title" style="font-weight:700;">Repo</div>
+                    <div id="repo-branch" class="text-muted font-mono" style="font-size:12px;">main</div>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-icon" id="btn-select" onclick="Repo.toggleSelect()"><span class="icon">checklist</span></button>
+                    <button class="btn btn-icon hidden" id="btn-fork" onclick="Repo.fork()"><span class="icon">fork_right</span></button>
+                    <button class="btn btn-icon btn-danger" id="btn-delete" onclick="Repo.deleteRepo()"><span class="icon">delete</span></button>
+                </div>
+            </header>
+
+            <div style="padding:16px 20px 0 20px; display:flex; gap:20px; border-bottom:1px solid var(--border);">
+                <div class="tab active" id="tab-files" onclick="Repo.setTab('files')" style="padding-bottom:12px; border-bottom:2px solid var(--primary); color:white; font-weight:600; cursor:pointer;">Files</div>
+                <div class="tab" id="tab-upload" onclick="Repo.setTab('upload')" style="padding-bottom:12px; border-bottom:2px solid transparent; color:var(--text-muted); font-weight:600; cursor:pointer;">Upload</div>
+            </div>
+
+            <div id="content-files" class="scroll-content" style="padding-top:0;">
+                <div style="position:sticky; top:0; background:var(--bg-deep); z-index:10; padding:16px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <div id="breadcrumbs" class="font-mono text-sm" style="overflow-x:auto; white-space:nowrap; padding-right:10px;">/</div>
+                    <div class="flex gap-2">
+                        <button class="btn" style="height:36px; padding:0 12px;" onclick="Modal.newFile()"><span class="icon icon-sm">note_add</span></button>
+                        <button class="btn" style="height:36px; padding:0 12px;" onclick="Modal.newFolder()"><span class="icon icon-sm">create_new_folder</span></button>
+                    </div>
+                </div>
+                
+                <div id="file-list" style="margin-top:16px; padding-bottom:100px;"></div>
+            </div>
+
+            <div id="content-upload" class="scroll-content hidden">
+                <div style="border:2px dashed var(--border-highlight); border-radius:16px; padding:60px 20px; text-align:center; margin-top:40px; cursor:pointer;" onclick="document.getElementById('file-inp').click()">
+                    <span class="icon" style="font-size:64px; color:var(--text-muted); margin-bottom:20px;">cloud_upload</span>
+                    <h2 style="margin:0;">Tap to Select Folder</h2>
+                    <p class="text-muted" style="margin-top:8px;">Uploading to: <span id="upload-target" class="font-mono text-main">/</span></p>
+                    <input type="file" id="file-inp" multiple webkitdirectory hidden>
+                </div>
+                
+                <div id="upload-queue" class="hidden" style="margin-top:30px;">
+                    <div class="flex" style="justify-content:space-between; margin-bottom:10px;">
+                        <span class="font-bold">Queue</span>
+                        <span class="text-muted" id="upload-count">0 files</span>
+                    </div>
+                    <input id="upload-msg" placeholder="Commit message (e.g. Update assets)" style="margin-bottom:16px;">
+                    <button class="btn btn-primary w-full" id="btn-exec-upload" onclick="Repo.upload()">
+                        <span class="btn-content">Start Upload</span>
+                        <div class="loader"></div>
+                    </button>
+                    <div id="upload-log" class="font-mono text-muted text-sm" style="margin-top:20px;"></div>
+                </div>
+            </div>
+
+            <div id="action-bar" class="action-bar">
+                <span style="font-weight:700;"><span id="sel-count">0</span> Selected</span>
+                <div class="flex gap-2">
+                    <button class="btn" style="height:40px;" onclick="Modal.moveFiles()">Move</button>
+                    <button class="btn btn-danger" style="height:40px;" onclick="Repo.deleteSelection()">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. EDITOR -->
+        <div id="view-editor" class="view">
+            <header>
+                <div class="flex gap-2">
+                    <button class="btn btn-icon" onclick="Router.back()"><span class="icon">close</span></button>
+                    <span id="ed-path" class="font-mono font-bold text-sm">file.js</span>
+                </div>
+                <button class="btn btn-primary" id="btn-save" onclick="Editor.save()">
+                    <span class="btn-content">Save</span>
+                    <div class="loader"></div>
+                </button>
+            </header>
+            <div class="editor-container">
+                <div class="editor-meta">
+                    <input id="ed-msg" placeholder="Commit description..." style="height:40px; font-size:14px; background:var(--bg-float);">
+                </div>
+                <textarea id="ed-content" class="code-input" spellcheck="false"></textarea>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // SAFETY
-        window.onerror = (m) => { document.getElementById('crash-screen').style.display='flex'; document.getElementById('crash-msg').textContent=m; };
-        const $ = id => document.getElementById(id);
+        // --- SYSTEM ---
+        const $ = s => document.querySelector(s);
+        const $$ = s => document.querySelectorAll(s);
         
-        // STATE
-        const State = {
-            ghToken: localStorage.getItem('gm_gh'),
-            aiToken: localStorage.getItem('gm_ai'),
-            user: null, repos: [], curr: null, tree: [], path: '', files: [],
-            chatHistory: [] // AI Memory
+        // --- STATE ---
+        const Store = {
+            token: localStorage.getItem('gm_token'),
+            user: null,
+            repos: [],
+            activeRepo: null,
+            tree: [],
+            path: '',
+            selection: [],
+            filesToUpload: [],
+            isFork: false
         };
 
-        const Toast = (m, t='s') => {
-            const el=document.createElement('div'); el.className='toast';
-            el.innerHTML=`<span class="icon icon-sm" style="color:${t==='e'?'var(--danger)':'var(--primary)'}">${t==='e'?'error':'check'}</span><span>${m}</span>`;
-            $('toast-box').appendChild(el);
-            if(window.gsap) gsap.fromTo(el,{y:20,opacity:0},{y:0,opacity:1,duration:0.3});
-            setTimeout(()=>el.remove(), 3000);
-        };
+        // --- ROUTER ---
+        const Router = {
+            stack: ['view-login'],
+            
+            init: () => {
+                if(Store.token) App.login(Store.token);
+                else Router.show('view-login');
+            },
 
-        const Loader={
-            on:id=>$(id).classList.add('loading'),
-            off:id=>$(id).classList.remove('loading')
-        };
+            push: (viewId) => {
+                const currentId = Router.stack[Router.stack.length - 1];
+                Router.stack.push(viewId);
+                const currentEl = document.getElementById(currentId);
+                const nextEl = document.getElementById(viewId);
+                
+                nextEl.style.zIndex = 20;
+                nextEl.classList.add('active');
+                gsap.fromTo(nextEl, { x: '100%' }, { x: '0%', duration: 0.4, ease: 'power3.out' });
+                gsap.to(currentEl, { scale: 0.92, opacity: 0.5, duration: 0.4, ease: 'power3.out' });
+            },
 
-        const Nav = {
-            to: (id) => {
-                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-                $(`view-${id}`).classList.add('active');
+            back: () => {
+                if(Router.stack.length <= 1) return;
+                const currentId = Router.stack.pop();
+                const prevId = Router.stack[Router.stack.length - 1];
+                const currentEl = document.getElementById(currentId);
+                const prevEl = document.getElementById(prevId);
+                
+                gsap.to(currentEl, { x: '100%', duration: 0.35, ease: 'power3.inOut', onComplete: () => {
+                    currentEl.classList.remove('active');
+                    currentEl.style.transform = ''; currentEl.style.opacity = '';
+                }});
+                gsap.to(prevEl, { scale: 1, opacity: 1, duration: 0.35, ease: 'power3.out' });
+            },
+
+            show: (viewId) => {
+                $$('.view').forEach(v => v.classList.remove('active'));
+                const el = document.getElementById(viewId);
+                el.classList.add('active');
+                el.style.transform = 'none';
+                el.style.opacity = 1;
+                Router.stack = [viewId];
             }
         };
 
+        // --- API ---
         const API = {
-            call: async (ep, method='GET', body=null) => {
+            base: 'https://api.github.com',
+            request: async (endpoint, method = 'GET', body = null) => {
+                const opts = { method, headers: { 'Authorization': `token ${Store.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' } };
+                if(body) opts.body = JSON.stringify(body);
                 try {
-                    const opt = { method, headers: {'Authorization': `token ${State.ghToken}`, 'Accept': 'application/vnd.github.v3+json'} };
-                    if(body) opt.body = JSON.stringify(body);
-                    const r = await fetch(ep.startsWith('http')?ep:`https://api.github.com${ep}`, opt);
-                    if(r.status===401) { localStorage.clear(); location.reload(); throw new Error("Auth failed"); }
-                    if(r.status===204) return null;
-                    const d = await r.json();
-                    if(!r.ok) throw new Error(d.message);
-                    return d;
-                } catch(e) { Toast(e.message, 'e'); throw e; }
-            }
-        };
-
-        const App = {
-            init: async () => {
-                if(State.aiToken) $('ai-key-set').value = State.aiToken;
-                if(State.ghToken) {
-                    try {
-                        State.user = await API.call('/user');
-                        $('u-login').textContent = State.user.login; $('u-avatar').src = State.user.avatar_url;
-                        Nav.to('dashboard'); Repo.list();
-                    } catch(e) { Nav.to('login'); }
+                    const res = await fetch(API.base + endpoint, opts);
+                    if(res.status === 204) return null;
+                    if(res.status === 401) throw new Error("Unauthorized");
+                    const data = await res.json();
+                    if(!res.ok) throw new Error(data.message || 'API Error');
+                    return data;
+                } catch(e) {
+                    if(e.message === "Unauthorized") App.logout();
+                    Toast.show(e.message, 'error');
+                    throw e;
                 }
-            },
-            login: async () => {
-                const t = $('gh-token').value.trim();
-                const k = $('ai-key-login').value.trim();
-                if(!t) return;
-                Loader.on('btn-login');
-                State.ghToken = t; localStorage.setItem('gm_gh', t);
-                if(k) { State.aiToken = k; localStorage.setItem('gm_ai', k); }
-                try {
-                    State.user = await API.call('/user');
-                    $('u-login').textContent = State.user.login; $('u-avatar').src = State.user.avatar_url;
-                    Nav.to('dashboard'); Repo.list();
-                } catch(e) { State.ghToken=null; }
-                finally { Loader.off('btn-login'); }
-            },
-            saveAI: () => {
-                const k = $('ai-key-set').value.trim();
-                localStorage.setItem('gm_ai', k); State.aiToken = k;
-                Toast("AI Key Saved");
-            },
-            logout: () => { localStorage.clear(); location.reload(); }
-        };
-
-        const Repo = {
-            list: async () => {
-                const q = $('search-input').value;
-                const el = $('repo-list'); el.innerHTML='<div style="padding:20px;text-align:center">Loading...</div>';
-                try {
-                    let d = [];
-                    if($('search-scope').value==='my') {
-                        d = (await API.call('/user/repos?sort=updated&per_page=30')).filter(r=>r.name.includes(q));
-                    } else {
-                        if(q.length<3) return el.innerHTML='<div style="padding:20px;text-align:center">Type 3+ chars</div>';
-                        d = (await API.call(`/search/repositories?q=${q}`)).items;
-                    }
-                    el.innerHTML = d.map(r => `
-                        <div class="list-item" onclick="Repo.open('${r.full_name}', '${r.default_branch}', '${r.owner.login}')">
-                            <div><div style="color:#58a6ff;font-weight:600">${r.full_name}</div><div class="text-xs text-muted">${r.description||''}</div></div>
-                            <span class="icon icon-sm" style="color:var(--muted)">chevron_right</span>
-                        </div>
-                    `).join('');
-                } catch(e) { el.innerHTML='Error'; }
-            },
-            create: async () => {
-                const n = $('new-repo-name').value;
-                if(!n) return Toast('Name required', 'e');
-                Loader.on('modal-ok');
-                try {
-                    await API.call('/user/repos', 'POST', { name: n, private: $('new-repo-private').checked, auto_init: true });
-                    Toast('Created!'); Modal.close(); Repo.list();
-                } catch(e) {} finally { Loader.off('modal-ok'); }
-            },
-            open: (n, b, owner) => {
-                State.curr = { full_name: n, default_branch: b, owner: {login: owner} };
-                $('r-name').textContent = n; $('r-branch').textContent = b;
-                State.path = ''; State.chatHistory = []; 
-                $('chat-hist').innerHTML = '<div class="msg msg-a">I am Gemini. Ready to help with this repo.</div>';
-                
-                const isMine = State.user.login === owner;
-                $('btn-del').classList.toggle('hidden', !isMine);
-                $('btn-fork').classList.toggle('hidden', isMine);
-                
-                Repo.tab('files'); Nav.to('repo'); Repo.fetch();
-            },
-            fetch: async () => {
-                $('file-list').innerHTML='<div style="padding:20px">Loading...</div>';
-                try {
-                    const r = await API.call(`/repos/${State.curr.full_name}/git/trees/${State.curr.default_branch}?recursive=1`);
-                    State.tree = r.tree; Repo.render();
-                } catch(e) { $('file-list').innerHTML='Empty or Error'; State.tree = []; Repo.render(); }
-            },
-            render: () => {
-                const el=$('file-list'); el.innerHTML='';
-                const p = State.path;
-                
-                const bc=$('crumbs'); bc.innerHTML=`<span class="btn" style="padding:4px 8px;font-size:12px" onclick="Repo.nav('')">root</span>`;
-                if(p) p.split('/').forEach((part,i,a) => bc.innerHTML+=`<span style="margin:0 4px">/</span><span class="btn" style="padding:4px 8px;font-size:12px" onclick="Repo.nav('${a.slice(0,i+1).join('/')}')">${part}</span>`);
-                $('upload-target').textContent = p ? `/${p}` : '/';
-
-                const items = State.tree.filter(i => {
-                    if(p==='') return !i.path.includes('/');
-                    return i.path.startsWith(p+'/') && i.path.split('/').length === p.split('/').length+1;
-                }).sort((a,b) => (a.type===b.type)?0:(a.type==='tree'?-1:1));
-
-                items.forEach(i => {
-                    const row = document.createElement('div'); row.className='list-item';
-                    const icon = i.type==='tree'?'folder':'description';
-                    const col = i.type==='tree'?'#58a6ff':'var(--muted)';
-                    row.innerHTML = `<div class="flex gap-2"><span class="icon icon-sm" style="color:${col}">${icon}</span><span class="font-code text-sm">${i.path.split('/').pop()}</span></div>`;
-                    row.onclick = () => i.type==='tree' ? Repo.nav(i.path) : Editor.open(i);
-                    el.appendChild(row);
-                });
-            },
-            nav: p => { State.path=p; Repo.render(); },
-            refresh: () => Repo.fetch(),
-            tab: t => {
-                $('cont-files').classList.toggle('hidden', t!=='files');
-                $('cont-upload').classList.toggle('hidden', t!=='upload');
-                $('cont-ai').classList.toggle('hidden', t!=='ai');
-                $('tab-files').classList.toggle('active', t==='files');
-                $('tab-upload').classList.toggle('active', t==='upload');
-                $('tab-ai').classList.toggle('active-ai', t==='ai');
-            },
-            fork: async () => {
-                if(!confirm(`Fork ${State.curr.full_name}?`)) return;
-                Loader.on('btn-fork');
-                try {
-                    const r = await API.call(`/repos/${State.curr.full_name}/forks`, 'POST');
-                    Toast('Fork started!'); setTimeout(() => { Repo.open(r.full_name, r.default_branch, State.user.login); }, 3000);
-                } catch(e) {} finally { Loader.off('btn-fork'); }
-            },
-            delRepo: async () => {
-                if(confirm(`DELETE ${State.curr.full_name}? This is permanent.`)) {
-                    await API.call(`/repos/${State.curr.full_name}`, 'DELETE');
-                    Nav.to('dashboard'); Repo.list(); Toast('Deleted');
-                }
-            },
-            executeUpload: async () => {
-                if(State.files.length===0) return Toast("No files selected", "e");
-                Loader.on('btn-do-upload');
-                const log = $('up-log'); log.innerHTML='Starting...';
-                try {
-                    for(let f of State.files) {
-                        const rel = f.webkitRelativePath.split('/').slice(1).join('/'); 
-                        const finalPath = (State.path ? State.path + '/' : '') + rel;
-                        log.innerHTML += `<br>Up: ${finalPath}`;
-                        const reader = new FileReader();
-                        const b64 = await new Promise(r => { reader.onload = () => r(reader.result.split(',')[1]); reader.readAsDataURL(f); });
-                        let sha; try{const ex=await API.call(`/repos/${State.curr.full_name}/contents/${finalPath}`); sha=ex.sha}catch(z){}
-                        await API.call(`/repos/${State.curr.full_name}/contents/${finalPath}`, 'PUT', {
-                            message: $('up-msg').value, content: b64, sha: sha, branch: State.curr.default_branch
-                        });
-                    }
-                    Toast("Uploaded!"); Repo.tab('files'); Repo.fetch();
-                } catch(e) { log.innerHTML+='<br>ERROR'; }
-                finally { Loader.off('btn-do-upload'); }
             }
         };
 
-        const Editor = {
-            item: null,
-            open: async (i) => {
-                Editor.item=i; Nav.to('editor'); $('ed-name').textContent=i.path; $('ed-code').value='Loading...';
-                try {
-                    const d = await API.call(`/repos/${State.curr.full_name}/contents/${i.path}`);
-                    Editor.item.sha = d.sha;
-                    $('ed-code').value = decodeURIComponent(escape(window.atob(d.content.replace(/\n/g, ""))));
-                } catch(e) { $('ed-code').value='Error'; }
-            },
-            initNew: () => {
-                const n = $('new-name').value; if(!n) return;
-                Modal.close(); Nav.to('editor');
-                const p = (State.path ? State.path + '/' : '') + n;
-                $('ed-name').textContent = p; $('ed-code').value = '';
-                Editor.item = { path: p, isNew: true };
-            },
-            save: async () => {
-                Loader.on('btn-save');
-                try {
-                    const b64 = window.btoa(unescape(encodeURIComponent($('ed-code').value)));
-                    const body = { message: 'Update via GitMobile', content: b64, branch: State.curr.default_branch };
-                    if(!Editor.item.isNew) body.sha = Editor.item.sha;
-                    const r = await API.call(`/repos/${State.curr.full_name}/contents/${Editor.item.path}`, 'PUT', body);
-                    Editor.item.sha = r.content.sha; Editor.item.isNew=false; Toast('Saved');
-                } catch(e){} finally { Loader.off('btn-save'); }
+        // --- UTILS ---
+        const Toast = {
+            show: (msg, type = 'success') => {
+                const el = document.createElement('div'); el.className = 'toast';
+                el.style.borderLeft = `4px solid ${type === 'error' ? '#da3633' : '#238636'}`;
+                el.innerHTML = `<span class="icon">${type === 'error' ? 'error' : 'check_circle'}</span><span>${msg}</span>`;
+                $('#toasts').appendChild(el);
+                gsap.fromTo(el, {y: -50, opacity: 0}, {y: 0, opacity: 1, duration: 0.4, ease: 'back.out(1.7)'});
+                setTimeout(() => gsap.to(el, {y: -20, opacity: 0, onComplete: () => el.remove()}), 3000);
             }
         };
 
-        const AI = {
-            clear: () => { State.chatHistory = []; $('chat-hist').innerHTML = '<div class="msg msg-a">Memory cleared.</div>'; },
-            append: (t, type) => {
-                const d = document.createElement('div'); d.className = `msg msg-${type}`; d.textContent = t;
-                $('chat-hist').appendChild(d); $('chat-hist').scrollTop = $('chat-hist').scrollHeight;
-                return d;
-            },
-            send: async () => {
-                const txt = $('ai-in').value.trim(); if(!txt) return;
-                if(!State.aiToken) return Toast("Set API Key in Settings", 'e');
-                $('ai-in').value='';
-                State.chatHistory.push({ role: 'user', parts: [{ text: txt }] });
-                AI.append(txt, 'u'); const load = AI.append('Thinking...', 's');
-                
-                const prompt = `You are GitMobile Agent. Repo: ${State.curr.full_name}. Path: /${State.path}. 
-                REPLY JSON ONLY: { "tool": "tool_name", ...args }
-                Tools: read_file(path), update_file(path, content, message), create_file(path, content, message), delete_file(path, message), search(query), rename_repo(new_name), delete_repo(), reply(text)`;
-
-                try {
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${State.aiToken}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt }] }, contents: State.chatHistory })
-                    });
-                    const d = await r.json(); load.remove();
-                    const aiTxt = d.candidates[0].content.parts[0].text;
-                    State.chatHistory.push({ role: 'model', parts: [{ text: aiTxt }] });
-                    AI.execute(JSON.parse(aiTxt.replace(/```json|```/g, '').trim()));
-                } catch(e) { load.textContent="Error"; }
-            },
-            execute: async (cmd) => {
-                const { tool, path, content, text, query, new_name } = cmd;
-                try {
-                    if(tool === 'reply') AI.append(text, 'a');
-                    if(tool === 'read_file') {
-                        const d = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
-                        const c = decodeURIComponent(escape(window.atob(d.content.replace(/\n/g,""))));
-                        State.chatHistory.push({ role: 'user', parts: [{ text: `FILE CONTENT:\n${c}` }] });
-                        AI.append(`Read ${path}`, 'a');
-                    }
-                    if(tool === 'create_file' || tool === 'update_file') {
-                        let sha; if(tool==='update_file') try{const f=await API.call(`/repos/${State.curr.full_name}/contents/${path}`); sha=f.sha}catch(e){}
-                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'PUT', {message:'AI', content:window.btoa(unescape(encodeURIComponent(content))), sha});
-                        AI.append(`Saved ${path}`, 'a'); Repo.fetch();
-                    }
-                    if(tool === 'delete_file') {
-                        const f = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
-                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'DELETE', {message:'AI Del', sha:f.sha});
-                        AI.append(`Deleted ${path}`, 'a'); Repo.fetch();
-                    }
-                    if(tool === 'search') {
-                        const res = await API.call(`/search/code?q=${encodeURIComponent(query)}+repo:${State.curr.full_name}`);
-                        const hits = res.items.map(i=>i.path).join(', ');
-                        State.chatHistory.push({ role: 'user', parts: [{ text: `RESULTS: ${hits}` }] });
-                        AI.append(`Found in: ${hits}`, 'a');
-                    }
-                } catch(e) { AI.append("Tool fail: "+e.message, 's'); }
+        const Loader = {
+            toggle: (btnId, loading) => {
+                const btn = document.getElementById(btnId);
+                if(loading) btn.classList.add('loading');
+                else btn.classList.remove('loading');
             }
         };
 
         const Modal = {
-            open: (t) => {
-                const b = $('modal-body'); $('modal-title').textContent=t; $('modal-overlay').classList.add('open');
-                if(t==='create') { 
-                    b.innerHTML='<label class="text-xs font-bold text-muted">Name</label><input id="new-repo-name" placeholder="Repo Name"><div style="margin-top:10px"><label><input type="checkbox" id="new-repo-private" checked> Private</label></div>'; 
-                    $('modal-ok').onclick=Repo.create; 
-                }
-                if(t==='newfile') { 
-                    b.innerHTML=`<p class="text-xs text-muted">In /${State.path}</p><input id="new-name" placeholder="Filename">`; 
-                    $('modal-ok').onclick=Editor.initNew; 
-                }
-                if(t==='newfolder') { 
-                    b.innerHTML=`<p class="text-xs text-muted">In /${State.path}</p><input id="new-fname" placeholder="Folder Name">`; 
-                    $('modal-ok').onclick=Repo.newFolder; 
-                }
+            overlay: $('#sheet-overlay'), content: $('#sheet-content'), title: $('#sheet-title'), body: $('#sheet-body'), confirmBtn: $('#sheet-confirm'),
+            open: (title, html, onConfirm) => {
+                Modal.title.innerText = title; Modal.body.innerHTML = html;
+                Modal.confirmBtn.onclick = async () => {
+                    Loader.toggle('sheet-confirm', true);
+                    await onConfirm();
+                    Loader.toggle('sheet-confirm', false);
+                    Modal.close();
+                };
+                Modal.overlay.classList.add('open');
+                gsap.to(Modal.overlay, {opacity: 1, duration: 0.3});
+                gsap.to(Modal.content, {y: '0%', duration: 0.5, ease: 'elastic.out(1, 0.75)'});
             },
-            close: () => $('modal-overlay').classList.remove('open')
+            close: () => {
+                gsap.to(Modal.content, {y: '100%', duration: 0.3, ease: 'power2.in'});
+                gsap.to(Modal.overlay, {opacity: 0, duration: 0.3, onComplete: () => Modal.overlay.classList.remove('open')});
+            },
+            createRepo: () => {
+                Modal.open('New Repository', `
+                    <div class="input-group"><input id="new-repo-name" placeholder="Repository Name"></div>
+                    <label style="display:flex;align-items:center;gap:10px;"><input type="checkbox" id="new-repo-private" style="width:20px;height:20px;" checked> Private Repository</label>
+                `, async () => {
+                    const name = $('#new-repo-name').value;
+                    if(!name) return;
+                    await API.request('/user/repos', 'POST', { name, private: $('#new-repo-private').checked, auto_init: true });
+                    Toast.show('Repository created'); RepoList.load();
+                });
+            },
+            newFile: () => {
+                Modal.open('Create File', `<p class="text-muted">Location: /${Store.path}</p><div class="input-group"><input id="new-filename" placeholder="Name (e.g. index.js)"></div>`, async () => {
+                    const name = $('#new-filename').value;
+                    if(!name) return;
+                    Modal.close();
+                    Editor.open({ path: (Store.path ? Store.path + '/' : '') + name, isNew: true });
+                });
+            },
+            newFolder: () => {
+                Modal.open('Create Folder', `<p class="text-muted">Location: /${Store.path}</p><div class="input-group"><input id="new-foldername" placeholder="Folder Name"></div>`, async () => {
+                    const name = $('#new-foldername').value; if(!name) return;
+                    const path = (Store.path ? Store.path + '/' : '') + name + '/.gitkeep';
+                    await API.request(`/repos/${Store.activeRepo.full_name}/contents/${path}`, 'PUT', { message: 'Create folder', content: '', branch: Store.activeRepo.default_branch });
+                    Toast.show('Folder created'); FileList.load();
+                });
+            },
+            moveFiles: () => {
+                const folders = ['root', ...Store.tree.filter(i => i.type === 'tree').map(i => i.path)];
+                let html = `<div class="folder-browser">`;
+                folders.forEach(f => {
+                    const name = f === 'root' ? '/ (Root)' : f.split('/').pop();
+                    const padding = f === 'root' ? 16 : 16 + (f.split('/').length * 10);
+                    html += `<div class="folder-row" onclick="Modal.selectFolder(this, '${f}')" style="padding-left:${padding}px"><span class="icon icon-sm" style="color:#8b949e">folder</span> ${name}</div>`;
+                });
+                html += `</div>`;
+                Modal.open('Move Selection', html, async () => {
+                    if(!Store.moveTarget) return;
+                    const target = Store.moveTarget === 'root' ? '' : Store.moveTarget;
+                    for(const srcPath of Store.selection) {
+                        const filename = srcPath.split('/').pop(); const destPath = target ? `${target}/${filename}` : filename;
+                        if(srcPath === destPath) continue;
+                        const item = Store.tree.find(x => x.path === srcPath);
+                        if(item.type !== 'blob') continue;
+                        const fileData = await API.request(`/repos/${Store.activeRepo.full_name}/contents/${srcPath}`);
+                        await API.request(`/repos/${Store.activeRepo.full_name}/contents/${destPath}`, 'PUT', { message: `Move ${filename}`, content: fileData.content, branch: Store.activeRepo.default_branch });
+                        await API.request(`/repos/${Store.activeRepo.full_name}/contents/${srcPath}`, 'DELETE', { message: `Remove original ${filename}`, sha: item.sha, branch: Store.activeRepo.default_branch });
+                    }
+                    Toast.show('Moved successfully'); FileList.exitSelectionMode(); FileList.load();
+                });
+            },
+            selectFolder: (el, path) => {
+                $$('.folder-row').forEach(e => e.classList.remove('active'));
+                el.classList.add('active'); Store.moveTarget = path;
+            }
         };
 
-        // BINDINGS
-        $('file-input').onchange=e=>{State.files=Array.from(e.target.files);$('q-count').textContent=State.files.length;$('upload-q').classList.remove('hidden');};
-        $('btn-login').onclick=App.login; $('search-input').onkeyup=e=>{if(e.key==='Enter')Repo.list()};
-        $('search-scope').onchange=Repo.list;
+        const App = {
+            login: async () => {
+                const token = $('#login-token').value;
+                if(!token) return Toast.show('Enter token', 'error');
+                Store.token = token; Loader.toggle('btn-login', true);
+                try {
+                    const user = await API.request('/user');
+                    Store.user = user; localStorage.setItem('gm_token', token);
+                    $('#user-avatar').src = user.avatar_url; $('#user-login').innerText = user.login;
+                    RepoList.load(); Router.push('view-dashboard');
+                } catch(e) { console.error(e); } finally { Loader.toggle('btn-login', false); }
+            },
+            logout: () => { localStorage.removeItem('gm_token'); location.reload(); }
+        };
 
-        App.init();
+        const RepoList = {
+            load: async () => {
+                const list = $('#repo-list'); list.innerHTML = '<div style="padding:20px; text-align:center; color:#8b949e">Loading...</div>';
+                const q = $('#dash-search').value.toLowerCase(); const scope = $('#dash-scope').value;
+                try {
+                    let repos = [];
+                    if(scope === 'my') {
+                        repos = await API.request('/user/repos?sort=updated&per_page=30');
+                        repos = repos.filter(r => r.name.toLowerCase().includes(q));
+                    } else {
+                        if(q.length < 3) { list.innerHTML = '<div style="padding:20px; text-align:center; color:#8b949e">Type 3 chars...</div>'; return; }
+                        const res = await API.request(`/search/repositories?q=${q}`); repos = res.items;
+                    }
+                    list.innerHTML = '';
+                    repos.forEach((repo, index) => {
+                        const div = document.createElement('div'); div.className = 'list-card'; div.style.opacity = '0';
+                        div.innerHTML = `<div><div style="font-weight:600; font-size:15px; color:#58a6ff; margin-bottom:4px;">${repo.full_name}</div><div class="text-muted text-sm">${repo.description || 'No description'}</div></div><span class="icon" style="color:#30363d">chevron_right</span>`;
+                        div.onclick = () => FileList.openRepo(repo);
+                        list.appendChild(div);
+                        gsap.to(div, {opacity: 1, y: 0, duration: 0.3, delay: index * 0.05});
+                    });
+                } catch(e) { list.innerHTML = 'Error loading repositories'; }
+            }
+        };
+
+        const FileList = {
+            openRepo: (repo) => {
+                Store.activeRepo = repo; Store.isFork = repo.owner.login !== Store.user.login; Store.path = '';
+                $('#repo-title').innerText = repo.name; $('#repo-branch').innerText = repo.default_branch;
+                if(Store.isFork) { $('#btn-delete').classList.add('hidden'); $('#btn-fork').classList.remove('hidden'); }
+                else { $('#btn-delete').classList.remove('hidden'); $('#btn-fork').classList.add('hidden'); }
+                Router.push('view-repo'); Repo.setTab('files'); FileList.load();
+            },
+            load: async () => {
+                const list = $('#file-list'); list.innerHTML = '<div style="padding:20px; text-align:center; color:#8b949e">Fetching tree...</div>';
+                try {
+                    const res = await API.request(`/repos/${Store.activeRepo.full_name}/git/trees/${Store.activeRepo.default_branch}?recursive=1`);
+                    Store.tree = res.tree; FileList.render();
+                } catch(e) { list.innerHTML = '<div style="padding:20px; text-align:center; color:#da3633">Failed to load content</div>'; }
+            },
+            render: () => {
+                const list = $('#file-list'); list.innerHTML = '';
+                const p = Store.path; $('#upload-target').innerText = p ? `/${p}` : '/';
+                const crumbs = $('#breadcrumbs');
+                crumbs.innerHTML = `<span class="text-muted" style="cursor:pointer" onclick="FileList.nav('')">root</span>`;
+                if(p) {
+                    let acc = ''; p.split('/').forEach(part => { acc += (acc ? '/' : '') + part; const target = acc; crumbs.innerHTML += ` <span class="text-muted">/</span> <span style="font-weight:600; cursor:pointer;" onclick="FileList.nav('${target}')">${part}</span>`; });
+                }
+                const items = Store.tree.filter(i => {
+                    if (p === '') return !i.path.includes('/');
+                    return i.path.startsWith(p + '/') && i.path.split('/').length === p.split('/').length + 1;
+                }).sort((a,b) => (a.type===b.type) ? a.path.localeCompare(b.path) : (a.type==='tree'?-1:1));
+                if(items.length === 0) list.innerHTML = '<div style="padding:40px; text-align:center; color:#8b949e">Empty Directory</div>';
+                items.forEach(item => {
+                    const el = document.createElement('div'); el.className = 'list-card';
+                    const isSelected = Store.selection.includes(item.path);
+                    if(isSelected) el.classList.add('selected');
+                    const icon = item.type === 'tree' ? 'folder' : 'description';
+                    const color = item.type === 'tree' ? '#58a6ff' : '#8b949e';
+                    el.innerHTML = `<div style="display:flex; align-items:center; gap:12px;">${Store.selectionMode ? `<span class="icon icon-sm" style="color:${isSelected ? 'var(--primary)' : '#30363d'}">${isSelected ? 'check_box' : 'check_box_outline_blank'}</span>` : `<span class="icon icon-sm" style="color:${color}">${icon}</span>`}<span class="font-mono text-sm">${item.path.split('/').pop()}</span></div>`;
+                    el.onclick = () => { if(Store.selectionMode) FileList.toggleItem(item.path); else if(item.type === 'tree') FileList.nav(item.path); else Editor.open(item); };
+                    list.appendChild(el);
+                });
+            },
+            nav: (path) => { Store.path = path; FileList.render(); },
+            toggleMode: () => {
+                Store.selectionMode = !Store.selectionMode; Store.selection = []; const bar = $('#action-bar');
+                if(Store.selectionMode) { $('#btn-select').style.color = 'var(--primary)'; gsap.to(bar, {y: '0%'}); } 
+                else { $('#btn-select').style.color = ''; gsap.to(bar, {y: '150%'}); }
+                FileList.render();
+            },
+            toggleItem: (path) => {
+                if(Store.selection.includes(path)) Store.selection = Store.selection.filter(p => p !== path); else Store.selection.push(path);
+                $('#sel-count').innerText = Store.selection.length; FileList.render();
+            },
+            exitSelectionMode: () => { Store.selectionMode = false; Store.selection = []; $('#btn-select').style.color = ''; gsap.to($('#action-bar'), {y: '150%'}); FileList.render(); }
+        };
+
+        const Repo = {
+            setTab: (tab) => {
+                $$('.tab').forEach(t => { t.style.borderBottomColor = 'transparent'; t.style.color = 'var(--text-muted)'; });
+                $(`#tab-${tab}`).style.borderBottomColor = 'var(--primary)'; $(`#tab-${tab}`).style.color = 'white';
+                if(tab === 'files') { $('#content-files').classList.remove('hidden'); $('#content-upload').classList.add('hidden'); }
+                else { $('#content-files').classList.add('hidden'); $('#content-upload').classList.remove('hidden'); }
+            },
+            toggleSelect: FileList.toggleMode,
+            fork: async () => {
+                if(!confirm(`Fork ${Store.activeRepo.full_name}?`)) return;
+                try {
+                    await API.request(`/repos/${Store.activeRepo.full_name}/forks`, 'POST');
+                    Toast.show('Forking started...');
+                    setTimeout(() => { RepoList.load(); Router.back(); }, 2000);
+                } catch(e) {}
+            },
+            deleteRepo: async () => {
+                const confirmName = prompt(`Type "${Store.activeRepo.full_name}" to delete permanently:`);
+                if(confirmName === Store.activeRepo.full_name) {
+                    await API.request(`/repos/${Store.activeRepo.full_name}`, 'DELETE');
+                    Toast.show('Repository deleted'); RepoList.load(); Router.back();
+                }
+            },
+            deleteSelection: async () => {
+                if(!confirm(`Delete ${Store.selection.length} items?`)) return;
+                for(const path of Store.selection) {
+                    const item = Store.tree.find(i => i.path === path);
+                    if(item.type === 'blob') {
+                        await API.request(`/repos/${Store.activeRepo.full_name}/contents/${path}`, 'DELETE', { message: `Delete ${path}`, sha: item.sha, branch: Store.activeRepo.default_branch });
+                    }
+                }
+                Toast.show('Items deleted'); FileList.exitSelectionMode(); FileList.load();
+            },
+            upload: async () => {
+                if(Store.filesToUpload.length === 0) return;
+                Loader.toggle('btn-exec-upload', true);
+                const log = $('#upload-log'); log.innerHTML = 'Starting...';
+                try {
+                    for(const file of Store.filesToUpload) {
+                        const relativePath = file.webkitRelativePath.split('/').slice(1).join('/');
+                        const finalPath = (Store.path ? Store.path + '/' : '') + relativePath;
+                        log.innerHTML += `<br>Uploading: ${finalPath}`;
+                        const reader = new FileReader();
+                        const base64 = await new Promise(resolve => { reader.onload = () => resolve(reader.result.split(',')[1]); reader.readAsDataURL(file); });
+                        let sha; try { const existing = await API.request(`/repos/${Store.activeRepo.full_name}/contents/${finalPath}`); sha = existing.sha; } catch(e) {}
+                        await API.request(`/repos/${Store.activeRepo.full_name}/contents/${finalPath}`, 'PUT', { message: $('#upload-msg').value || 'Upload files', content: base64, sha: sha, branch: Store.activeRepo.default_branch });
+                    }
+                    Toast.show('Upload complete'); $('#file-inp').value = ''; Store.filesToUpload = []; $('#upload-queue').classList.add('hidden'); Repo.setTab('files'); FileList.load();
+                } catch(e) { log.innerHTML += `<br><span style="color:red">Error: ${e.message}</span>`; } finally { Loader.toggle('btn-exec-upload', false); }
+            }
+        };
+
+        const Editor = {
+            currentFile: null,
+            open: async (item) => {
+                Router.push('view-editor'); $('#ed-path').innerText = item.path.split('/').pop(); $('#ed-content').value = 'Loading...';
+                if(item.isNew) {
+                    Editor.currentFile = item; $('#ed-content').value = ''; $('#ed-msg').value = 'Create ' + item.path;
+                } else {
+                    Editor.currentFile = item;
+                    try {
+                        const res = await API.request(`/repos/${Store.activeRepo.full_name}/contents/${item.path}`);
+                        Editor.currentFile.sha = res.sha;
+                        $('#ed-content').value = decodeURIComponent(escape(window.atob(res.content.replace(/\n/g, ""))));
+                        $('#ed-msg').value = 'Update ' + item.path.split('/').pop();
+                    } catch(e) { $('#ed-content').value = 'Error loading file (likely binary)'; }
+                }
+            },
+            save: async () => {
+                Loader.toggle('btn-save', true);
+                try {
+                    const content = $('#ed-content').value;
+                    const base64 = window.btoa(unescape(encodeURIComponent(content)));
+                    const body = { message: $('#ed-msg').value, content: base64, branch: Store.activeRepo.default_branch };
+                    if(!Editor.currentFile.isNew) body.sha = Editor.currentFile.sha;
+                    const res = await API.request(`/repos/${Store.activeRepo.full_name}/contents/${Editor.currentFile.path}`, 'PUT', body);
+                    Editor.currentFile.sha = res.content.sha; Editor.currentFile.isNew = false;
+                    Toast.show('File saved');
+                } catch(e) { console.error(e); } finally { Loader.toggle('btn-save', false); }
+            }
+        };
+
+        // --- INIT & LISTENERS ---
+        $('#file-inp').onchange = (e) => {
+            Store.filesToUpload = Array.from(e.target.files).filter(f => !f.webkitRelativePath.includes('.git'));
+            $('#upload-count').innerText = `${Store.filesToUpload.length} files`;
+            $('#upload-queue').classList.remove('hidden');
+        };
+        $('#dash-search').onkeyup = (e) => { if(e.key === 'Enter') RepoList.load(); };
+        $('#dash-scope').onchange = RepoList.load;
+        
+        Router.init();
     </script>
 </body>
 </html>
