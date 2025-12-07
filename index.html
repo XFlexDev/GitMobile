@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0d1117">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>GitMobile v15</title>
+    <title>GitMobile v16</title>
     
     <link rel="icon" type="image/webp" href="https://files.catbox.moe/6kd6rm.webp">
     <link rel="apple-touch-icon" href="https://files.catbox.moe/6kd6rm.webp">
@@ -32,11 +32,12 @@
         .text-sm { font-size: 14px; } .text-xs { font-size: 12px; }
         .font-bold { font-weight: 600; } .font-code { font-family: var(--font-code); }
 
+        /* BUTTONS & LOADER */
         .btn {
             background: var(--panel); border: 1px solid var(--border); color: var(--text);
             padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            font-size: 14px; transition: transform 0.1s;
+            font-size: 14px; transition: transform 0.1s; min-height: 40px; position: relative;
         }
         .btn:active { transform: scale(0.96); background: var(--hover); }
         .btn-primary { background: var(--primary); border-color: rgba(255,255,255,0.1); color: white; }
@@ -44,6 +45,16 @@
         .btn-danger { background: rgba(218,54,51,0.1); color: var(--danger); border-color: rgba(218,54,51,0.4); }
         .btn-icon { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
         
+        .loader {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); 
+            border-top-color: white; border-radius: 50%; 
+            animation: spin 0.8s linear infinite; display: none;
+            position: absolute; left: 50%; top: 50%; margin-left: -9px; margin-top: -9px;
+        }
+        .btn.loading .loader { display: block; }
+        .btn.loading span, .btn.loading .icon, .btn.loading .btn-text { visibility: hidden; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         .icon { font-family: 'Material Symbols Outlined'; font-size: 24px; display: inline-block; line-height: 1; }
         .icon-sm { font-size: 20px; } .icon-lg { font-size: 48px; }
 
@@ -80,9 +91,6 @@
         #crash-screen { display:none; position:fixed; inset:0; background:black; z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
         #toast-box { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; pointer-events: none; }
         .toast { background: var(--panel); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px black; }
-        .loader { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
-        .btn.loading .loader { display: block; } .btn.loading span { display: none; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -102,7 +110,7 @@
             <h1 style="margin-bottom:30px">GitMobile</h1>
             <input type="password" id="gh-token" placeholder="GitHub Token" style="margin-bottom:20px">
             <button class="btn btn-primary w-full" id="btn-login" onclick="App.login()">
-                <div class="loader"></div><span>Sign In</span>
+                <div class="loader"></div><span class="btn-text">Sign In</span>
             </button>
             <div style="margin-top:30px; border-top:1px solid var(--border); padding-top:20px">
                 <p class="text-xs text-muted mb-2">AI API Key (Optional)</p>
@@ -159,7 +167,9 @@
                 <div id="r-branch" class="text-xs text-muted font-code">main</div>
             </div>
             <div class="flex gap-2">
-                <button id="btn-fork" class="btn hidden" onclick="Repo.fork()"><div class="loader"></div>Fork</button>
+                <button id="btn-fork" class="btn hidden" onclick="Repo.fork()">
+                    <div class="loader"></div><span class="btn-text">Fork</span>
+                </button>
                 <button id="btn-del" class="btn btn-icon btn-danger" onclick="Repo.delRepo()"><span class="icon">delete</span></button>
             </div>
         </header>
@@ -191,7 +201,9 @@
             <div id="upload-q" class="hidden" style="margin-top:20px">
                 <p>Queue: <span id="q-count">0</span> files</p>
                 <input id="up-msg" placeholder="Commit message" value="Bulk upload" style="margin:10px 0;">
-                <button class="btn btn-primary w-full" id="btn-do-upload" onclick="Repo.executeUpload()">Start Upload</button>
+                <button class="btn btn-primary w-full" id="btn-do-upload" onclick="Repo.executeUpload()">
+                    <div class="loader"></div><span class="btn-text">Start Upload</span>
+                </button>
                 <div id="up-log" style="font-family:var(--font-code); font-size:11px; margin-top:10px; color:var(--muted);"></div>
             </div>
         </div>
@@ -219,7 +231,9 @@
                 <button class="btn btn-icon" onclick="Nav.to('repo')"><span class="icon">close</span></button>
                 <span id="ed-name" class="font-bold font-code">...</span>
             </div>
-            <button class="btn btn-primary" onclick="Editor.save()">Save</button>
+            <button class="btn btn-primary" id="btn-save" onclick="Editor.save()">
+                <div class="loader"></div><span class="btn-text">Save</span>
+            </button>
         </header>
         <div class="editor-wrap">
             <textarea class="code-area" id="ed-code" spellcheck="false" wrap="off"></textarea>
@@ -233,7 +247,9 @@
             <div id="modal-body"></div>
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
                 <button class="btn" onclick="Modal.close()">Cancel</button>
-                <button class="btn btn-primary" id="modal-ok">Confirm</button>
+                <button class="btn btn-primary" id="modal-ok">
+                    <div class="loader"></div><span class="btn-text">Confirm</span>
+                </button>
             </div>
         </div>
     </div>
@@ -257,6 +273,11 @@
             $('toast-box').appendChild(el);
             if(window.gsap) gsap.fromTo(el,{y:20,opacity:0},{y:0,opacity:1,duration:0.3});
             setTimeout(()=>el.remove(), 3000);
+        };
+
+        const Loader={
+            on:id=>$(id).classList.add('loading'),
+            off:id=>$(id).classList.remove('loading')
         };
 
         const Nav = {
@@ -296,7 +317,7 @@
                 const t = $('gh-token').value.trim();
                 const k = $('ai-key-login').value.trim();
                 if(!t) return;
-                $('btn-login').classList.add('loading');
+                Loader.on('btn-login');
                 State.ghToken = t; localStorage.setItem('gm_gh', t);
                 if(k) { State.aiToken = k; localStorage.setItem('gm_ai', k); }
                 try {
@@ -304,7 +325,7 @@
                     $('u-login').textContent = State.user.login; $('u-avatar').src = State.user.avatar_url;
                     Nav.to('dashboard'); Repo.list();
                 } catch(e) { State.ghToken=null; }
-                finally { $('btn-login').classList.remove('loading'); }
+                finally { Loader.off('btn-login'); }
             },
             saveAI: () => {
                 const k = $('ai-key-set').value.trim();
@@ -334,10 +355,19 @@
                     `).join('');
                 } catch(e) { el.innerHTML='Error'; }
             },
+            create: async () => {
+                const n = $('new-repo-name').value;
+                if(!n) return Toast('Name required', 'e');
+                Loader.on('modal-ok');
+                try {
+                    await API.call('/user/repos', 'POST', { name: n, private: $('new-repo-private').checked, auto_init: true });
+                    Toast('Created!'); Modal.close(); Repo.list();
+                } catch(e) {} finally { Loader.off('modal-ok'); }
+            },
             open: (n, b, owner) => {
                 State.curr = { full_name: n, default_branch: b, owner: {login: owner} };
                 $('r-name').textContent = n; $('r-branch').textContent = b;
-                State.path = ''; State.chatHistory = []; // Reset chat per repo
+                State.path = ''; State.chatHistory = []; 
                 $('chat-hist').innerHTML = '<div class="msg msg-a">I am Gemini. Ready to help with this repo.</div>';
                 
                 const isMine = State.user.login === owner;
@@ -357,11 +387,8 @@
                 const el=$('file-list'); el.innerHTML='';
                 const p = State.path;
                 
-                // Breadcrumbs
                 const bc=$('crumbs'); bc.innerHTML=`<span class="btn" style="padding:4px 8px;font-size:12px" onclick="Repo.nav('')">root</span>`;
                 if(p) p.split('/').forEach((part,i,a) => bc.innerHTML+=`<span style="margin:0 4px">/</span><span class="btn" style="padding:4px 8px;font-size:12px" onclick="Repo.nav('${a.slice(0,i+1).join('/')}')">${part}</span>`);
-                
-                // Upload target update
                 $('upload-target').textContent = p ? `/${p}` : '/';
 
                 const items = State.tree.filter(i => {
@@ -384,18 +411,17 @@
                 $('cont-files').classList.toggle('hidden', t!=='files');
                 $('cont-upload').classList.toggle('hidden', t!=='upload');
                 $('cont-ai').classList.toggle('hidden', t!=='ai');
-                
                 $('tab-files').classList.toggle('active', t==='files');
                 $('tab-upload').classList.toggle('active', t==='upload');
                 $('tab-ai').classList.toggle('active-ai', t==='ai');
             },
             fork: async () => {
                 if(!confirm(`Fork ${State.curr.full_name}?`)) return;
-                $('btn-fork').classList.add('loading');
+                Loader.on('btn-fork');
                 try {
                     const r = await API.call(`/repos/${State.curr.full_name}/forks`, 'POST');
                     Toast('Fork started!'); setTimeout(() => { Repo.open(r.full_name, r.default_branch, State.user.login); }, 3000);
-                } catch(e) {} finally { $('btn-fork').classList.remove('loading'); }
+                } catch(e) {} finally { Loader.off('btn-fork'); }
             },
             delRepo: async () => {
                 if(confirm(`DELETE ${State.curr.full_name}? This is permanent.`)) {
@@ -403,10 +429,9 @@
                     Nav.to('dashboard'); Repo.list(); Toast('Deleted');
                 }
             },
-            // UPLOAD LOGIC
             executeUpload: async () => {
                 if(State.files.length===0) return Toast("No files selected", "e");
-                $('btn-do-upload').classList.add('loading');
+                Loader.on('btn-do-upload');
                 const log = $('up-log'); log.innerHTML='Starting...';
                 try {
                     for(let f of State.files) {
@@ -422,7 +447,7 @@
                     }
                     Toast("Uploaded!"); Repo.tab('files'); Repo.fetch();
                 } catch(e) { log.innerHTML+='<br>ERROR'; }
-                finally { $('btn-do-upload').classList.remove('loading'); }
+                finally { Loader.off('btn-do-upload'); }
             }
         };
 
@@ -438,30 +463,25 @@
             },
             initNew: () => {
                 const n = $('new-name').value; if(!n) return;
-                Modal.close();
-                Nav.to('editor');
+                Modal.close(); Nav.to('editor');
                 const p = (State.path ? State.path + '/' : '') + n;
-                $('ed-name').textContent = p;
-                $('ed-code').value = '';
+                $('ed-name').textContent = p; $('ed-code').value = '';
                 Editor.item = { path: p, isNew: true };
             },
             save: async () => {
+                Loader.on('btn-save');
                 try {
                     const b64 = window.btoa(unescape(encodeURIComponent($('ed-code').value)));
                     const body = { message: 'Update via GitMobile', content: b64, branch: State.curr.default_branch };
                     if(!Editor.item.isNew) body.sha = Editor.item.sha;
                     const r = await API.call(`/repos/${State.curr.full_name}/contents/${Editor.item.path}`, 'PUT', body);
                     Editor.item.sha = r.content.sha; Editor.item.isNew=false; Toast('Saved');
-                } catch(e){}
+                } catch(e){} finally { Loader.off('btn-save'); }
             }
         };
 
         const AI = {
-            clear: () => {
-                State.chatHistory = [];
-                $('chat-hist').innerHTML = '<div class="msg msg-a">Memory cleared.</div>';
-                Toast("Memory Cleared");
-            },
+            clear: () => { State.chatHistory = []; $('chat-hist').innerHTML = '<div class="msg msg-a">Memory cleared.</div>'; },
             append: (t, type) => {
                 const d = document.createElement('div'); d.className = `msg msg-${type}`; d.textContent = t;
                 $('chat-hist').appendChild(d); $('chat-hist').scrollTop = $('chat-hist').scrollHeight;
@@ -470,113 +490,70 @@
             send: async () => {
                 const txt = $('ai-in').value.trim(); if(!txt) return;
                 if(!State.aiToken) return Toast("Set API Key in Settings", 'e');
-                
                 $('ai-in').value='';
-                
-                // 1. Add User Message to History & UI
                 State.chatHistory.push({ role: 'user', parts: [{ text: txt }] });
-                AI.append(txt, 'u'); 
-                const load = AI.append('Thinking...', 's');
+                AI.append(txt, 'u'); const load = AI.append('Thinking...', 's');
                 
-                const systemPrompt = `
-                    You are GitMobile Agent. 
-                    Repo: ${State.curr.full_name}. 
-                    Current Path: /${State.path}.
-                    
-                    REPLY ONLY WITH A JSON OBJECT to call a tool.
-                    Tools:
-                    { "tool": "read_file", "path": "path/to/file" }
-                    { "tool": "update_file", "path": "path", "content": "full_content" }
-                    { "tool": "create_file", "path": "path", "content": "content" }
-                    { "tool": "delete_file", "path": "path" }
-                    { "tool": "rename_repo", "new_name": "name" }
-                    { "tool": "search", "query": "text" }
-                    { "tool": "reply", "text": "natural language response" }
-                `;
-
-                // Prepare Payload with History
-                const payload = {
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    contents: State.chatHistory
-                };
+                const prompt = `You are GitMobile Agent. Repo: ${State.curr.full_name}. Path: /${State.path}. 
+                REPLY JSON ONLY: { "tool": "tool_name", ...args }
+                Tools: read_file(path), update_file(path, content, message), create_file(path, content, message), delete_file(path, message), search(query), rename_repo(new_name), delete_repo(), reply(text)`;
 
                 try {
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${State.aiToken}`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt }] }, contents: State.chatHistory })
                     });
-                    const d = await r.json();
-                    load.remove();
-                    
+                    const d = await r.json(); load.remove();
                     const aiTxt = d.candidates[0].content.parts[0].text;
-                    // Add AI raw response to history
                     State.chatHistory.push({ role: 'model', parts: [{ text: aiTxt }] });
-
-                    const clean = aiTxt.replace(/```json/g, '').replace(/```/g, '').trim();
-                    const cmd = JSON.parse(clean);
-                    AI.execute(cmd);
-                } catch(e) { load.textContent="Error: "+e.message; }
+                    AI.execute(JSON.parse(aiTxt.replace(/```json|```/g, '').trim()));
+                } catch(e) { load.textContent="Error"; }
             },
             execute: async (cmd) => {
                 const { tool, path, content, text, query, new_name } = cmd;
-                let resultText = "";
-
                 try {
-                    if(tool === 'reply') {
-                        AI.append(text, 'a');
-                        return; // Don't add reply to history as tool result, it's already there as model response
-                    }
-                    else if(tool === 'read_file') {
+                    if(tool === 'reply') AI.append(text, 'a');
+                    if(tool === 'read_file') {
                         const d = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
                         const c = decodeURIComponent(escape(window.atob(d.content.replace(/\n/g,""))));
-                        resultText = `SYSTEM: File ${path} content:\n${c}`;
-                        AI.append(`Read ${path} (${c.length} chars)`, 'a');
+                        State.chatHistory.push({ role: 'user', parts: [{ text: `FILE CONTENT:\n${c}` }] });
+                        AI.append(`Read ${path}`, 'a');
                     }
-                    else if(tool === 'create_file' || tool === 'update_file') {
-                        let sha; if(tool==='update_file') { try{const f=await API.call(`/repos/${State.curr.full_name}/contents/${path}`); sha=f.sha}catch(e){} }
-                        const b64 = window.btoa(unescape(encodeURIComponent(content)));
-                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'PUT', {message:'AI Action', content:b64, sha});
-                        resultText = `SYSTEM: Successfully ${tool} at ${path}`;
+                    if(tool === 'create_file' || tool === 'update_file') {
+                        let sha; if(tool==='update_file') try{const f=await API.call(`/repos/${State.curr.full_name}/contents/${path}`); sha=f.sha}catch(e){}
+                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'PUT', {message:'AI', content:window.btoa(unescape(encodeURIComponent(content))), sha});
                         AI.append(`Saved ${path}`, 'a'); Repo.fetch();
                     }
-                    else if(tool === 'delete_file') {
+                    if(tool === 'delete_file') {
                         const f = await API.call(`/repos/${State.curr.full_name}/contents/${path}`);
-                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'DELETE', {message:'AI Delete', sha:f.sha});
-                        resultText = `SYSTEM: Deleted ${path}`;
+                        await API.call(`/repos/${State.curr.full_name}/contents/${path}`, 'DELETE', {message:'AI Del', sha:f.sha});
                         AI.append(`Deleted ${path}`, 'a'); Repo.fetch();
                     }
-                    else if(tool === 'search') {
+                    if(tool === 'search') {
                         const res = await API.call(`/search/code?q=${encodeURIComponent(query)}+repo:${State.curr.full_name}`);
                         const hits = res.items.map(i=>i.path).join(', ');
-                        resultText = `SYSTEM: Search results for '${query}': ${hits}`;
+                        State.chatHistory.push({ role: 'user', parts: [{ text: `RESULTS: ${hits}` }] });
                         AI.append(`Found in: ${hits}`, 'a');
                     }
-                    else if(tool === 'rename_repo') {
-                        const r = await API.call(`/repos/${State.curr.full_name}`, 'PATCH', {name: new_name});
-                        State.curr.full_name = r.full_name; $('r-name').textContent=r.name;
-                        resultText = `SYSTEM: Repo renamed to ${r.name}`;
-                        AI.append(`Renamed to ${r.name}`, 'a');
-                    }
-
-                    // CRITICAL: Feed tool result back to memory as USER message so AI knows what happened
-                    if(resultText) {
-                        State.chatHistory.push({ role: 'user', parts: [{ text: resultText }] });
-                    }
-
-                } catch(e) { 
-                    const err = `SYSTEM ERROR: ${e.message}`;
-                    State.chatHistory.push({ role: 'user', parts: [{ text: err }] });
-                    AI.append("Tool failed: "+e.message, 's'); 
-                }
+                } catch(e) { AI.append("Tool fail: "+e.message, 's'); }
             }
         };
 
         const Modal = {
             open: (t) => {
                 const b = $('modal-body'); $('modal-title').textContent=t; $('modal-overlay').classList.add('open');
-                if(t==='create') { b.innerHTML='<input id="new-repo" placeholder="Name">'; $('modal-ok').onclick=Repo.create; }
-                if(t==='newfile') { b.innerHTML=`<p style="color:#777;font-size:12px">In: /${State.path}</p><input id="new-name" placeholder="Name">`; $('modal-ok').onclick=Editor.initNew; }
-                if(t==='newfolder') { b.innerHTML=`<p style="color:#777;font-size:12px">In: /${State.path}</p><input id="new-fname" placeholder="Name">`; $('modal-ok').onclick=Repo.newFolder; }
+                if(t==='create') { 
+                    b.innerHTML='<label class="text-xs font-bold text-muted">Name</label><input id="new-repo-name" placeholder="Repo Name"><div style="margin-top:10px"><label><input type="checkbox" id="new-repo-private" checked> Private</label></div>'; 
+                    $('modal-ok').onclick=Repo.create; 
+                }
+                if(t==='newfile') { 
+                    b.innerHTML=`<p class="text-xs text-muted">In /${State.path}</p><input id="new-name" placeholder="Filename">`; 
+                    $('modal-ok').onclick=Editor.initNew; 
+                }
+                if(t==='newfolder') { 
+                    b.innerHTML=`<p class="text-xs text-muted">In /${State.path}</p><input id="new-fname" placeholder="Folder Name">`; 
+                    $('modal-ok').onclick=Repo.newFolder; 
+                }
             },
             close: () => $('modal-overlay').classList.remove('open')
         };
